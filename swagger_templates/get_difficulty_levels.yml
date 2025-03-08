@@ -1,0 +1,26 @@
+tags:
+  - Difficulty Levels
+summary: Get a list of difficulty levels
+description: Retrieve a list of available difficulty levels.
+operationId: getDifficultyLevels
+responses:
+  200:
+    description: Successfully retrieved difficulty levels.
+    schema:
+      type: object
+      properties:
+        difficulty_levels:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+                description: Difficulty level ID.
+              name:
+                type: string
+                example: "Primary School"
+                description: Difficulty level name.
+  500:
+    description: Internal server error.

@@ -1,0 +1,45 @@
+tags:
+  - Reports
+summary: Add a lesson report
+description: Allows a teacher to add a report for a completed lesson, including comments and ratings.
+operationId: addReport
+parameters:
+  - name: body
+    in: body
+    required: true
+    schema:
+      type: object
+      properties:
+        lesson_id:
+          type: integer
+          example: 10
+          description: ID of the lesson being reported.
+        comment:
+          type: string
+          example: "Good progress made today."
+          description: Comments about the lesson.
+        homework:
+          type: string
+          example: "Complete exercises 5-10."
+          description: Assigned homework for the student.
+        progress_rating:
+          type: integer
+          example: 4
+          description: Progress rating (0-5).
+responses:
+  201:
+    description: Report successfully created.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Report created"
+  400:
+    description: Validation errors or unauthorized access.
+  404:
+    description: Lesson not found.
+  500:
+    description: Internal server error.
+security:
+  - jwt: []

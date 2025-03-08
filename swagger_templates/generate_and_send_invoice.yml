@@ -1,0 +1,77 @@
+tags:
+  - Invoices
+summary: Generate and send an invoice
+description: Generates a PDF invoice for a lesson and sends it to the student's email.
+operationId: generateAndSendInvoice
+parameters:
+  - name: invoice_id
+    in: path
+    required: true
+    schema:
+      type: integer
+      example: 1
+responses:
+  200:
+    description: Invoice generated and sent successfully.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Invoice PDF generated and sent to john.doe@example.com."
+        invoice_data:
+          type: object
+          properties:
+            invoice_id:
+              type: integer
+              example: 1
+            lesson_id:
+              type: integer
+              example: 42
+            student_name:
+              type: string
+              example: "John Doe"
+            student_email:
+              type: string
+              example: "john.doe@example.com"
+            teacher_name:
+              type: string
+              example: "Jane Smith"
+            teacher_email:
+              type: string
+              example: "jane.smith@example.com"
+            subject:
+              type: string
+              example: "Mathematics"
+            lesson_date:
+              type: string
+              format: date
+              example: "2025-01-10"
+            price:
+              type: number
+              format: float
+              example: 50.0
+            vat_rate:
+              type: number
+              format: float
+              example: 23.0
+            issue_date:
+              type: string
+              format: date-time
+              example: "2025-01-09T12:00:00Z"
+  404:
+    description: Resource not found.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Invoice not found."
+  500:
+    description: Internal server error.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "An unexpected error occurred."
