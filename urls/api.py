@@ -1,35 +1,20 @@
-from flask import Blueprint, jsonify, request, redirect, send_from_directory
-import requests
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from flasgger import swag_from
-from datetime import datetime, timedelta
-from sqlalchemy import desc, and_, asc, cast, text, func, Index
-from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import REGCONFIG
-import sys
-import requests
 import os
+import sys
+from datetime import datetime, timedelta
+
+import requests
+from flasgger import swag_from
+from flask import Blueprint, jsonify, request
+from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
+    DifficultyLevel, db
+
+from helper import jwt_required, get_object_or_404,jwt_get_user
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from pdf_generator.lesson_invoice import LessonInvoice
-from pdf_generator.pdf_generator import PDFInvoiceGenerator
-from models import Teacher, Student, Review, Lesson, Calendar, Invoice, LessonReport, Calendar, Subject, \
-    DifficultyLevel, db
-
 api = Blueprint('api', __name__)
-
-
-def get_user_by_jwt():
-    user_id = get_jwt_identity()
-    user = Teacher.query.filter_by(id=user_id).first()
-
-    if not user:
-        user = Student.query.filter_by(id=user_id).first()
-
-    return user
 
 
 @api.errorhandler(404)
@@ -57,50 +42,35 @@ def get_difficulty_levels():
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_teacher.yml'))
 @jwt_required()
 def get_teacher_list():
-    user = get_user_by_jwt()
+    filters = []
+
     subject = request.args.get('subject')
     difficulty_id = request.args.get('difficulty_id')
 
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
+    if subject:
+        filters.append(Teacher.subject_ids.match(subject))
+    if difficulty_id:
+        filters.append(Teacher.difficulty_level_ids.match(difficulty_id))
 
-    if subject and difficulty_id:
-        teachers = Teacher.query.filter(Teacher.subject_ids.match(subject),
-                                        Teacher.difficulty_level_ids.match(difficulty_id)).all()
-    elif subject:
-        teachers = Teacher.query.filter(Teacher.subject_ids.match(subject)).all()
-    elif difficulty_id:
-        teachers = Teacher.query.filter(Teacher.difficulty_level_ids.match(difficulty_id)).all()
-    else:
-        teachers = Teacher.query.all()
+    teachers = Teacher.query.filter(*filters).all()
 
-    if teachers:
-        teacher_list = [teacher.to_dict() for teacher in teachers]
-
-        return jsonify({'teacher_list': teacher_list}), 200
-    else:
+    if not teachers:
         return jsonify({'message': 'Teachers not found'}), 404
+
+    return jsonify({'teacher_list': [teacher.to_dict() for teacher in teachers]}), 200
 
 
 ### End of teacher list ###
 
 @api.route('/teacher-update', methods=['PUT'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'update_teacher.yml'))
-@jwt_required()
-def update_teacher():
-    user = get_user_by_jwt()
-
+@jwt_required(role='teacher')
+@jwt_get_user()
+def update_teacher(user):
     data = request.get_json()
     subject_ids = data.get('subject_ids')
     difficulty_level_ids = data.get('difficulty_ids')
     hourly_rate = data.get('hourly_rate')
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'teacher':
-        return jsonify({'message': 'User can not be a student'}), 400
-
     try:
         if subject_ids:
             if all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
@@ -136,14 +106,8 @@ def update_teacher():
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_reviews.yml'))
 @jwt_required()
 def get_reviews():
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
     reviews = Review.query.all()
     reviews_list = [r.to_dict() for r in reviews]
-
     return jsonify(reviews=reviews_list), 200
 
 
@@ -151,20 +115,9 @@ def get_reviews():
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_reviews_by_id.yml'))
 @jwt_required()
 def get_reviews_by_id(teacher_id):
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    try:
-        teacher_id = int(teacher_id)
-    except ValueError:
-        return jsonify({'message': 'Teacher id must be an integer'}), 400
-
-    teacher = Teacher.query.filter_by(id=teacher_id)
-
-    if not teacher:
-        return jsonify({'message': 'Teacher not found'}), 404
+    teacher = get_object_or_404(Teacher, teacher_id)
+    if not isinstance(teacher, Teacher):
+        return teacher
 
     reviews = Review.query.filter_by(teacher_id=teacher_id).all()
     reviews_list = [r.to_dict() for r in reviews]
@@ -174,16 +127,9 @@ def get_reviews_by_id(teacher_id):
 
 @api.route('/teacher-reviews/<int:teacher_id>', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_review.yml'))
-@jwt_required()
-def add_review(teacher_id):
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'student':
-        return jsonify({'message': 'User can not be a teacher'}), 400
-
+@jwt_required(role='student')
+@jwt_get_user()
+def add_review(user,teacher_id):
     lessons = Lesson.query.filter_by(teacher_id=teacher_id, student_id=user.id).first()
 
     if not lessons:
@@ -200,29 +146,22 @@ def add_review(teacher_id):
     if rating < 0 or rating > 5:
         return jsonify({'message': 'Rating must be between values 0 and 5'}), 400
 
+    if not comment:
+        comment = ""
+
     new_review = Review(teacher_id=teacher_id, student_id=user.id, rating=rating, comment=comment)
 
     db.session.add(new_review)
     db.session.commit()
-
-    if not comment:
-        comment = ""
 
     return jsonify({"message": "Review created successfully."}), 200
 
 
 @api.route('/teacher-reviews/<int:teacher_id>', methods=['DELETE'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'delete_review.yml'))
-@jwt_required()
-def delete_review(teacher_id):
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'student':
-        return jsonify({'message': 'User can not be a teacher'}), 400
-
+@jwt_required(role='student')
+@jwt_get_user()
+def delete_review(user,teacher_id):
     review = Review.query.filter_by(teacher_id=teacher_id, student_id=user.id).first()
 
     if not review:
@@ -240,47 +179,22 @@ def delete_review(teacher_id):
 ### Lessons ###
 @api.route('/lesson', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_lesson.yml'))
-@jwt_required()
-def add_lesson():
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'student':
-        return jsonify({'message': 'User can not be a teacher'}), 400
-
+@jwt_required(role='student')
+@jwt_get_user()
+def add_lesson(user):
     data = request.get_json()
     teacher_id = data.get('teacher_id')
     subject_id = data.get('subject_id')
     difficulty_level_id = data.get('difficulty_id')
     date = data.get('date')
 
-    if not subject_id:
-        return jsonify({'message': 'Subject must be provided'}), 400
+    subject = get_object_or_404(Subject, subject_id)
+    if not isinstance(subject, Subject):
+        return subject
 
-    try:
-        subject_id = int(subject_id)
-    except ValueError:
-        return jsonify({'message': 'Subject id must be an integer'}), 400
-
-    subject = Subject.query.filter_by(id=subject_id).first()
-
-    if not subject:
-        return jsonify({'message': 'Subject not found'}), 404
-
-    if not difficulty_level_id:
-        return jsonify({'message': 'Difficulty level must be provided'}), 400
-
-    try:
-        difficulty_level_id = int(difficulty_level_id)
-    except ValueError:
-        return jsonify({'message': 'Difficulty level id must be an integer'}), 400
-
-    difficulty_level = Subject.query.filter_by(id=difficulty_level_id).first()
-
-    if not difficulty_level:
-        return jsonify({'message': 'Difficulty level not found'}), 404
+    difficulty = get_object_or_404(DifficultyLevel, difficulty_level_id)
+    if not isinstance(difficulty, DifficultyLevel):
+        return difficulty
 
     if not date:
         return jsonify({'message': 'Date must be provided'}), 400
@@ -290,20 +204,14 @@ def add_lesson():
     except ValueError:
         return jsonify({'message': 'Date must be in format %d/%m/%Y %H:%M'}), 400
 
-    try:
-        teacher_id = int(teacher_id)
-    except ValueError:
-        return jsonify({'message': 'Teacher id must be an integer'}), 400
-
-    teacher = Teacher.query.filter_by(id=teacher_id).first()
-
-    if not teacher:
-        return jsonify({'message': 'Teacher not found'}), 404
+    teacher = get_object_or_404(Teacher, teacher_id)
+    if not isinstance(teacher, Teacher):
+        return teacher
 
     calendar = Calendar.query.filter_by(teacher_id=teacher_id).first()
 
     if not calendar:
-        return jsonify({'message': 'Teacher does not hav a calendar set'}), 400
+        return jsonify({'message': 'Teacher does not have a calendar set'}), 400
 
     if date < datetime.utcnow():
         return jsonify({'message': 'Lesson time must be in the future'}), 400
@@ -314,10 +222,10 @@ def add_lesson():
     if not (calendar.available_from <= date.time() and (date + timedelta(hours=1)).time() <= calendar.available_until):
         return jsonify({'message': 'Teacher does not work in this hours'}), 400
 
-    if subject_id not in set(map(int, teacher.subject_ids.replace("{", "").replace("}", "").split(','))):
+    if int(subject_id) not in set(map(int, teacher.subject_ids.strip("{}").split(','))):
         return jsonify({'message': 'Teacher does not teach this subject'}), 400
 
-    if difficulty_level_id not in set(
+    if int(difficulty_level_id) not in set(
             map(int, teacher.difficulty_level_ids.replace("{", "").replace("}", "").split(','))):
         return jsonify({'message': 'Teacher does not teach on this difficulty level'}), 400
 
@@ -340,63 +248,29 @@ def add_lesson():
     db.session.add(new_lesson)
     db.session.commit()
 
-    email_service_url = "http://host.docker.internal:5001/send-email"
-
-    # Email the student
-    email_payload = {
-        "email_receiver": user.email,
-        "subject": f"Lesson has been scheduled",
-        "body": (
-            f"Dear {user.name},\n\n"
-            f"Your lesson with {teacher.name} has been successfully scheduled.\n\n"
-            f"Date: {date.strftime('%Y-%m-%d')}"
-            "Best regards,\n"
-            "Your Teaching Service Team"
-        ),
-    }
-    requests.post(email_service_url, json=email_payload)
-
-    # Email the teacher
-    email_payload = {
-        "email_receiver": teacher.email,
-        "subject": f"Lesson has been scheduled",
-        "body": (
-            f"Dear {teacher.name},\n\n"
-            f"Your lesson with {user.name} has been successfully scheduled.\n\n"
-            f"Date: {date.strftime('%Y-%m-%d')}"
-            "Best regards,\n"
-            "Your Teaching Service Team"
-        ),
-    }
-
-    requests.post(email_service_url, json=email_payload)
-
     return jsonify({'message': 'Lesson created'}), 201
 
 
 @api.route('/lesson', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_lesson.yml'))
 @jwt_required()
-def get_lesson():
-    user = get_user_by_jwt()
+@jwt_get_user()
+def get_lesson(user):
+    role = user.role
     status = request.args.get('status')
     lessons = None
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
     if status:
         if status in ['scheduled', 'completed']:
-            if user.role == 'student':
+            if role == 'student':
                 lessons = Lesson.query.filter_by(student_id=user.id, status=status).all()
-            elif user.role == 'teacher':
+            elif role == 'teacher':
                 lessons = Lesson.query.filter_by(teacher_id=user.id, status=status).all()
         else:
             return jsonify({'message': 'Invalid status'}), 400
     else:
-        if user.role == 'student':
+        if role == 'student':
             lessons = Lesson.query.filter_by(student_id=user.id).all()
-        elif user.role == 'teacher':
+        elif role == 'teacher':
             lessons = Lesson.query.filter_by(teacher_id=user.id).all()
 
     if not lessons:
@@ -411,22 +285,11 @@ def get_lesson():
 # @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_lesson_by_id.yml'))
 @jwt_required()
 def get_lesson_by_id(teacher_id):
-    user = get_user_by_jwt()
+    teacher = get_object_or_404(Teacher,teacher_id)
+    if not isinstance(teacher,Teacher):
+        return teacher
 
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    try:
-        teacher_id = int(teacher_id)
-    except ValueError:
-        return jsonify({'message': 'Teacher id must be an integer'}), 400
-
-    teacher = Teacher.query.filter_by(id=teacher_id).first()
-
-    if not teacher:
-        return jsonify({'message': 'Teacher not found'}), 404
-
-    lessons = Lesson.query.filter_by(teacher_id=teacher_id).all()
+    lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
 
     if not lessons:
         return jsonify({'message': 'No lessons found'}), 400
@@ -439,172 +302,22 @@ def get_lesson_by_id(teacher_id):
 ### End of lessons ###
 
 
-### Invoices ###
-
-BASE_DIR = os.path.join(os.path.dirname(__file__), "../static_invoices")
-BASE_DIR = os.path.abspath(BASE_DIR)
-
-
-@api.route('/generated-invoice-pdf/<filename>', methods=['GET'])
-def get_pdf(filename):
-    try:
-        return send_from_directory(BASE_DIR, filename, as_attachment=True)
-    except FileNotFoundError:
-        return jsonify({"error": "File not found"}), 400
-
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../static_invoices"))
-
-
-def generate_and_send_invoice(invoice_id):
-    try:
-        # Pobranie danych z bazy danych
-        invoice = Invoice.query.filter_by(id=invoice_id).first()
-        if not invoice:
-            return jsonify({"error": "Invoice not found"}), 404
-
-        lesson = Lesson.query.filter_by(id=invoice.lesson_id).first()
-        if not lesson:
-            return jsonify({"error": "Lesson not found"}), 404
-
-        student = Student.query.filter_by(id=lesson.student_id).first()
-        if not student:
-            return jsonify({"error": "Student not found"}), 404
-
-        teacher = Teacher.query.filter_by(id=lesson.teacher_id).first()
-        if not teacher:
-            return jsonify({"error": "Teacher not found"}), 404
-
-        subject = Subject.query.filter_by(id=lesson.subject_id).first()
-        if not subject:
-            return jsonify({"error": "Subject not found"}), 404
-
-        # Tworzenie obiektu LessonInvoice
-        lesson_invoice = LessonInvoice(
-            invoice_id=invoice.id,
-            lesson_id=lesson.id,
-            student_name=student.name,
-            student_email=student.email,
-            teacher_name=teacher.name,
-            teacher_email=teacher.email,
-            subject=subject.name,
-            lesson_date=lesson.date,
-            price=invoice.price,
-            vat_rate=invoice.vat_rate,
-            issue_date=invoice.created_at
-        )
-
-        generator = PDFInvoiceGenerator()
-        generator.create_invoice(lesson_invoice)
-
-        # `PDFInvoiceGenerator`
-        pdf_filename = f"invoice_{invoice_id}.pdf"
-        pdf_url = f"http://host.docker.internal:5000/api/generated-invoice-pdf/{pdf_filename}"
-
-        email_service_url = "http://host.docker.internal:5001/send-email"
-        email_payload = {
-            "email_receiver": student.email,
-            "subject": f"Invoice #{invoice_id}",
-            "body": (
-                f"Dear {student.name},\n\n"
-                "Attached is the invoice for your recent lesson.\n\n"
-                "Best regards,\n"
-                "Your Teaching Service Team"
-            ),
-            "pdf_path": pdf_url
-        }
-
-        response = requests.post(email_service_url, json=email_payload)
-
-        # Obsługa odpowiedzi z mikroserwisu
-        if response.status_code == 200:
-            return jsonify({
-                "message": f"Invoice PDF generated and sent to {student.email}.",
-                "invoice_data": lesson_invoice.to_dict()
-            }), 200
-        else:
-            return jsonify({
-                "error": f"Failed to send email: {response.json().get('error', 'Unknown error')}"
-            }), 500
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@api.route('/invoice', methods=['POST'])
-@swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_invoice.yml'))
-@jwt_required()
-def add_invoice():
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'student':
-        return jsonify({'message': 'User can not be a teacher'}), 400
-
-    data = request.get_json()
-
-    lesson_id = data.get('lesson_id')
-
-    lesson = Lesson.query.filter_by(id=lesson_id).first()
-    if not lesson:
-        return jsonify({'message': 'Lesson not found'}), 400
-
-    invoice = Invoice.query.filter_by(lesson_id=lesson_id).first()
-
-    if invoice:
-        return jsonify({'message': 'Lesson already invoiced'}), 400
-
-    new_invoice = Invoice(lesson_id=lesson_id, price=lesson.price)
-
-    db.session.add(new_invoice)
-    db.session.commit()
-
-    generate_and_send_invoice(new_invoice.id)
-
-    return jsonify({'message': 'Invoice created'}), 201
-
-
-# Necassary endpoint used by the email service, not
-# meant to be used by external programs/services
-
-
-### End of invoices ###
-
-
 ### Reports ###
 
 @api.route('/report', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_report.yml'))
-@jwt_required()
-def add_report():
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'teacher':
-        return jsonify({'message': 'User can not be a student'}), 400
-
+@jwt_required(role='teacher')
+@jwt_get_user()
+def add_report(user):
     data = request.get_json()
     lesson_id = data.get('lesson_id')
     comment = data.get('comment')
     homework = data.get('homework')
     progress_rating = data.get('progress_rating')
 
-    if not lesson_id:
-        return jsonify({'message': 'Lesson id not provided'}), 400
-
-    try:
-        lesson_id = int(lesson_id)
-    except ValueError:
-        return jsonify({'message': 'Lesson id must be an integer'}), 400
-
-    lesson = Lesson.query.filter_by(id=lesson_id).first()
-
-    if not lesson:
-        return jsonify({'message': 'Lesson not found'}), 404
+    lesson = get_object_or_404(Lesson,lesson_id)
+    if not isinstance(lesson,Lesson):
+        return lesson
 
     if user.id != lesson.teacher_id:
         return jsonify({'message': 'Teacher does not belong to this lesson and cannot create report'}), 400
@@ -651,16 +364,12 @@ def add_report():
 @api.route('/report', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_report.yml'))
 @jwt_required()
-def get_report():
-    user = get_user_by_jwt()
-    reports = None
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role == 'student':
+@jwt_get_user()
+def get_report(user):
+    role = user.role
+    if role == 'student':
         reports = LessonReport.query.filter_by(student_id=user.id).all()
-    elif user.role == 'teacher':
+    elif role == 'teacher':
         reports = LessonReport.query.filter_by(teacher_id=user.id).all()
 
     if not reports:
@@ -685,12 +394,8 @@ def get_report():
 @api.route('/report/<int:lesson_id>', methods=['GET'])
 # @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_report.yml'))
 @jwt_required()
-def get_report_by_lesson_id(lesson_id):
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
+@jwt_get_user()
+def get_report_by_lesson_id(user,lesson_id):
     report = LessonReport.query.filter_by(lesson_id=lesson_id).first()
 
     if not report:
@@ -720,16 +425,8 @@ def get_report_by_lesson_id(lesson_id):
 
 @api.route('/calendar', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_calendar.yml'))
-@jwt_required()
+@jwt_required(role='teacher')
 def add_calendar():
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
-    if user.role != 'teacher':
-        return jsonify({'message': 'User can not be a student'}), 400
-
     data = request.get_json()
 
     available_from = data.get('available_from')
@@ -772,11 +469,6 @@ def add_calendar():
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_calendar.yml'))
 @jwt_required()
 def get_calendar(teacher_id):
-    user = get_user_by_jwt()
-
-    if not user:
-        return jsonify({'message': 'User not found'}), 401
-
     calendar = Calendar.query.filter_by(teacher_id=teacher_id).first()
 
     if not calendar:
