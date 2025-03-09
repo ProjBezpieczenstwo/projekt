@@ -1,10 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.dialects.postgresql import REGCONFIG
-from sqlalchemy import Index, func, text, cast, literal
 from datetime import datetime
-from werkzeug.security import generate_password_hash, check_password_hash
-from flask_jwt_extended import JWTManager, create_access_token
 from datetime import timedelta
+
+from flask_jwt_extended import create_access_token
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
@@ -25,15 +24,15 @@ class BaseUser(db.Model):
     }
 
     def set_password(self, password):
-        #Hash the password when setting it
+        # Hash the password when setting it
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        #Check if the provided password matches the stored hash
+        # Check if the provided password matches the stored hash
         return check_password_hash(self.password_hash, password)
 
     def generate_jwt(self):
-        #Generate JWT token for the user that expires after 10 days
+        # Generate JWT token for the user that expires after 10 days
         return create_access_token(identity=str(self.id), expires_delta=timedelta(days=10))
 
 
@@ -63,7 +62,6 @@ class Teacher(BaseUser):
             'hourly_rate': self.hourly_rate
         }
 
-
     __mapper_args__ = {'polymorphic_identity': 'teacher'}
 
 
@@ -91,8 +89,9 @@ class Lesson(db.Model):
             'price': self.price,
             'is_reviewed': self.is_reviewed,
             'is_reported': self.is_reported,
-            'difficulty_id' : self.difficulty_level_id,
+            'difficulty_id': self.difficulty_level_id,
         }
+
 
 class Calendar(db.Model):
     __tablename__ = 'calendars'
@@ -153,16 +152,7 @@ class Review(db.Model):
             'comment': self.comment,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
-    
 
-class Invoice(db.Model):
-    __tablename__ = 'invoices'
-    id = db.Column(db.Integer, primary_key=True)
-    lesson_id = db.Column(db.Integer, db.ForeignKey('lessons.id', ondelete='CASCADE'), nullable=False)
-    price = db.Column(db.Float, nullable=False) 
-    vat_rate = db.Column(db.Float, default=23.0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
 
 class Subject(db.Model):
     __tablename__ = 'subjects'

@@ -2,7 +2,7 @@ import random
 from datetime import datetime, time
 
 from faker import Faker
-from models import Teacher, Student, Lesson, Review, Invoice, LessonReport, Calendar, Subject, DifficultyLevel, db
+from models import Teacher, Student, Lesson, Review, LessonReport, Calendar, Subject, DifficultyLevel, db
 from server import app
 
 fake = Faker()
@@ -130,27 +130,6 @@ def populate_reviews(num):
         db.session.commit()
         print(f"{num} recenzji dodano do bazy danych.")
 
-
-def populate_invoices(num):
-    with app.app_context():
-        lessons = Lesson.query.filter_by(status="scheduled").all()
-
-        if not lessons:
-            print("Brak lekcji do wystawienia faktur.")
-            return
-
-        for _ in range(min(num, len(lessons))):
-            lesson = random.choice(lessons)
-
-            invoice = Invoice(
-                lesson_id=lesson.id,
-                email_sent=True
-            )
-            db.session.add(invoice)
-        db.session.commit()
-        print(f"{num} faktur dodano do bazy danych.")
-
-
 def populate_reports(num):
     with app.app_context():
         lessons = Lesson.query.all()
@@ -205,7 +184,6 @@ if __name__ == "__main__":
     populate_students(num_records)
     populate_lessons(num_records)
     populate_reviews(num_records)
-    # populate_invoices(num_records)
     populate_reports(num_records)
     populate_calendars(num_records)
 
