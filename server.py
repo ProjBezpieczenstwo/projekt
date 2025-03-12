@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from models import db
 from urls.auth import auth
-from urls.api import api, update_lesson_status_helper
+from urls.api import api, update_lesson_status_helper, delete_expired_temp_users_helper
 from config import Config
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -26,6 +26,7 @@ try:
         db.create_all()
         back_scheduler = BackgroundScheduler()
         back_scheduler.add_job(func=update_lesson_status_helper, trigger="interval", minutes=30)
+        back_scheduler.add_job(func=delete_expired_temp_users_helper, trigger="interval", minutes=30)
         back_scheduler.start()
 except OperationalError as e:
     print("Database connection failed. Please ensure the database is running and accessible.")
