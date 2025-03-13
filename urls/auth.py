@@ -19,6 +19,7 @@ def is_valid_email(email: str) -> bool:
 @auth.route('/register', methods=['POST'])
 @swag_from('../swagger_templates/register.yml')
 def register():
+
     data = request.get_json()
     new_user = None
 
@@ -27,6 +28,7 @@ def register():
     password = data.get('password')
     role = data.get('role')  # student or teacher
     auth_key = random.randint(1111, 9999)
+
 
     if not name or not email or not password or not role:
         return jsonify({"message": "Name, email, password, and role are required."}), 400
@@ -37,96 +39,71 @@ def register():
     if role not in ['student', 'teacher', 'admin']:
         return jsonify({"message": "Role must be either 'student' or 'teacher'."}), 400
 
-    # Check if the email already exists
+    # Sprawdzenie czy e-mail już istnieje
     existing_user = (Student.query.filter_by(email=email).first()
                      or Teacher.query.filter_by(email=email).first()
                      or Admin.query.filter_by(email=email).first())
     if existing_user:
         return jsonify({"message": "Email already in use."}), 400
 
-    # Create a new user based on the role
-    if role == 'student':
-        new_user = TempUser(
-            name=name,
-            email=email,
-            role='student',
-            auth_key=auth_key
-        )
-    elif role == 'teacher':
+    existing_user = TempUser.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"message": "Verify your email address."}),400
 
-        subject_ids = data.get('subject_ids').replace("{", "").replace("}", "").split(',')
-        difficulty_level_ids = data.get('difficulty_ids').replace("{", "").replace("}", "").split(',')
-        hourly_rate = data.get('hourly_rate')
-        try:
-            if subject_ids:
-                if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
-                    return jsonify({'message': 'Subject not found'}), 404
-            else:
-                return jsonify({"message": "Subjects are required."}), 400
-        except ValueError:
-            return jsonify({'message': 'Subject ids can only contain numbers'}), 400
+    # Tworzenie użytkownika w zależności od roli
+    try:
+        if role == 'student':
+            new_user = TempUser(name=name, email=email, role='student', auth_key=auth_key)
+        elif role == 'teacher':
+            subject_ids = data.get('subject_ids').replace("{", "").replace("}", "").split(',')
+            difficulty_level_ids = data.get('difficulty_ids').replace("{", "").replace("}", "").split(',')
+            hourly_rate = data.get('hourly_rate')
 
-        try:
-            if difficulty_level_ids:
-                if not all(DifficultyLevel.query.filter_by(id=int(s)).first() for s in difficulty_level_ids):
-                    return jsonify({'message': 'Difficulty level not found'}), 404
-            else:
-                return jsonify({"message": "Difficulty levels are required."}), 400
-        except ValueError:
-            return jsonify({'message': 'Difficulty levels ids can only contain numbers'}), 400
+            if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
+                return jsonify({'message': 'Subject not found'}), 404
 
-        try:
-            if hourly_rate:
-                hourly_rate = int(hourly_rate)
-            else:
-                return jsonify({"message": "Hourly rate is required."}), 400
-        except ValueError:
-            return jsonify({'message': 'Hourly rate can only be an integer'}), 400
+            if not all(DifficultyLevel.query.filter_by(id=int(s)).first() for s in difficulty_level_ids):
+                return jsonify({'message': 'Difficulty level not found'}), 404
 
-        new_user = TempUser(
-            name=name,
-            email=email,
-            subject_ids=subject_ids,
-            difficulty_level_ids=difficulty_level_ids,
-            hourly_rate=hourly_rate,
-            role='teacher',
-            auth_key=auth_key
-        )
-    elif role == 'admin':
-        secret = data.get('secret')
-        if not secret:
-            return jsonify({'message': 'Naaaaah'}), 400
-        if secret != 123:
-            return jsonify({'message': 'Hackerman do not try to access this'}), 400
-        new_user = Admin(
-            name=name,
-            email=email,
-            role='admin'
-        )
+            new_user = TempUser(
+                name=name,
+                email=email,
+                subject_ids=subject_ids,
+                difficulty_level_ids=difficulty_level_ids,
+                hourly_rate=int(hourly_rate),
+                role='teacher',
+                auth_key=auth_key
+            )
+        elif role == 'admin':
+            secret = data.get('secret')
+            if secret != 123:
+                return jsonify({'message': 'Hackerman do not try to access this'}), 400
+
+            new_user = Admin(name=name, email=email, role='admin')
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            return jsonify({'message': 'Now you can do a magic'}), 201
+
+        if not new_user:
+            return jsonify({"message": "Error occurred while creating new user."}), 500
+
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()
-        return jsonify({'message': 'Now you can do a magic'}), 201
-    if not new_user:
-        return jsonify({"message": "Error occurred while creating new user."}), 500
 
-    new_user.set_password(password)
+        # Wysłanie e-maila aktywacyjnego
+        email_service_url = "http://email_service:5001/send-email"
+        email_payload = {"email_receiver": email, "auth_key": auth_key}
+        response = requests.post(email_service_url, json=email_payload)
 
-    # Save the new user to the database
-    db.session.add(new_user)
-    db.session.commit()
-    email_service_url = "http://host.docker.internal:5001/send-email"
-    email_payload = {
-        "email_receiver": email,
-        "auth_key": auth_key
-    }
-    response = requests.post(email_service_url, json=email_payload)
-    if response.status_code == 200:
-        return jsonify({"message": "Confirm your email."}), 201
-    else:
-        return jsonify({
-            "error": f"Failed to send email: {response.json().get('error', 'Unknown error')}"
-        }), 500
+        if response.status_code == 200:
+            return jsonify({"message": "Confirm your email."}), 201
+        else:
+            return jsonify({response.json()}), 500
+
+    except Exception as e:
+        return jsonify({"message": "Internal server error"}), 500
 
 
 # Login Endpoint
