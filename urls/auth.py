@@ -80,27 +80,21 @@ def register():
                 return jsonify({'message': 'Hackerman do not try to access this'}), 400
 
             new_user = Admin(name=name, email=email, role='admin')
-            new_user.set_password(password)
-            db.session.add(new_user)
-            db.session.commit()
-            return jsonify({'message': 'Now you can do a magic'}), 201
 
         if not new_user:
             return jsonify({"message": "Error occurred while creating new user."}), 500
-
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
-
         # Wysłanie e-maila aktywacyjnego
         email_service_url = "http://email_service:5001/send-email"
         email_payload = {"email_receiver": email, "auth_key": auth_key}
         response = requests.post(email_service_url, json=email_payload)
 
-        if response.status_code == 200:
-            return jsonify({"message": "Confirm your email."}), 201
-        else:
+        if response.status_code != 200:
             return jsonify({response.json()}), 500
+
+        new_user.set_password(password)
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({"message": "Verify your email now!"}),200
 
     except Exception as e:
         return jsonify({"message": "Internal server error"}), 500
@@ -149,20 +143,20 @@ def check_auth_key():
     if not auth_key:
         return jsonify({"message": "You need to provide auth key."}), 400
     temp_user = TempUser.query.filter_by(email=email).first()
-    if temp_user.authKey != auth_key:
+    if str(temp_user.auth_key) != auth_key:
         return jsonify({"message": "Wrong auth key."}), 400
     else:
         if temp_user.role == 'student':
             new_user = Student(
                 name=temp_user.name,
                 email=temp_user.email,
-                password=temp_user.password,
+                password_hash=temp_user.password_hash,
                 role='student'
             )
         elif temp_user.role == 'teacher':
             new_user = Teacher(
                 name=temp_user.name,
-                password=temp_user.password,
+                password_hash=temp_user.password_hash,
                 email=temp_user.email,
                 subject_ids=temp_user.subject_ids,
                 difficulty_level_ids=temp_user.difficulty_level_ids,
