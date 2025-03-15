@@ -165,6 +165,7 @@ def check_auth_key():
             )
         if not new_user:
             return jsonify({"message": "Error occurred while creating new user."}), 500
+        db.session.delete(temp_user)
         db.session.add(new_user)
         db.session.commit()
         return jsonify({"message": f"{temp_user.role.capitalize()} registered successfully."}), 201
