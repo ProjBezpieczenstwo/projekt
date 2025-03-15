@@ -5,7 +5,14 @@ from flasgger import swag_from
 import requests
 from flask import Blueprint, jsonify, request
 from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin  # Importuj odpowiednie modele
-
+import uuid
+import logging
+import sys
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
 auth = Blueprint('auth', __name__)
 
 
@@ -27,9 +34,9 @@ def register():
     email = data.get('email')
     password = data.get('password')
     role = data.get('role')  # student or teacher
-    auth_key = random.randint(1111, 9999)
-
-
+    logging.info("przed auth_key")
+    auth_key = str(uuid.uuid4())
+    logging.info("po")
     if not name or not email or not password or not role:
         return jsonify({"message": "Name, email, password, and role are required."}), 400
 
@@ -86,14 +93,25 @@ def register():
         # Wysłanie e-maila aktywacyjnego
         email_service_url = "http://email_service:5001/send-email"
         email_payload = {"email_receiver": email, "auth_key": auth_key}
+        logging.info("przed postem")
         response = requests.post(email_service_url, json=email_payload)
-
+        logging.info("po poscie")
+        logging.info(response.status_code)
+        logging.info(response.json())
+        logging.info(response)
+        logging.info(response != 200)
         if response.status_code != 200:
             return jsonify({response.json()}), 500
-
-        new_user.set_password(password)
-        db.session.add(new_user)
-        db.session.commit()
+        try:
+            logging.info("po tescie response coda xD")
+            new_user.set_password(password)
+            logging.info("set password")
+            db.session.add(new_user)
+            logging.info("new user db")
+            db.session.commit()
+            logging.info("commit")
+        except Exception as e:
+            return jsonify({"XD":f"{e}"}),500
         return jsonify({"message": "Verify your email now!"}),200
 
     except Exception as e:
@@ -133,39 +151,33 @@ def login():
         return jsonify({"message": "Invalid email or password."}), 401
 
 
-@auth.route('/auth_key', methods=['POST'])
+@auth.route('/confirm/<auth_key>', methods=['GET'])
 # @swag_from('../swagger_templates/login.yml')
-def check_auth_key():
-    data = request.get_json()
-    email = data.get('email')
-    auth_key = data.get('auth_key')
+def check_auth_key(auth_key):
     new_user = None
     if not auth_key:
-        return jsonify({"message": "You need to provide auth key."}), 400
-    temp_user = TempUser.query.filter_by(email=email).first()
-    if str(temp_user.auth_key) != auth_key:
-        return jsonify({"message": "Wrong auth key."}), 400
-    else:
-        if temp_user.role == 'student':
-            new_user = Student(
-                name=temp_user.name,
-                email=temp_user.email,
-                password_hash=temp_user.password_hash,
-                role='student'
-            )
-        elif temp_user.role == 'teacher':
-            new_user = Teacher(
-                name=temp_user.name,
-                password_hash=temp_user.password_hash,
-                email=temp_user.email,
-                subject_ids=temp_user.subject_ids,
-                difficulty_level_ids=temp_user.difficulty_level_ids,
-                hourly_rate=temp_user.hourly_rate,
-                role='teacher'
-            )
-        if not new_user:
-            return jsonify({"message": "Error occurred while creating new user."}), 500
-        db.session.delete(temp_user)
-        db.session.add(new_user)
-        db.session.commit()
-        return jsonify({"message": f"{temp_user.role.capitalize()} registered successfully."}), 201
+        return jsonify({"message": "Bad link."}), 400
+    temp_user = TempUser.query.filter_by(auth_key=auth_key).first()
+    if temp_user.role == 'student':
+        new_user = Student(
+            name=temp_user.name,
+            email=temp_user.email,
+            password_hash=temp_user.password_hash,
+            role='student'
+        )
+    elif temp_user.role == 'teacher':
+        new_user = Teacher(
+            name=temp_user.name,
+            password_hash=temp_user.password_hash,
+            email=temp_user.email,
+            subject_ids=temp_user.subject_ids,
+            difficulty_level_ids=temp_user.difficulty_level_ids,
+            hourly_rate=temp_user.hourly_rate,
+            role='teacher'
+        )
+    if not new_user:
+        return jsonify({"message": "Error occurred while creating new user."}), 500
+    db.session.delete(temp_user)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({"message": f"{temp_user.role.capitalize()} registered successfully."}), 201

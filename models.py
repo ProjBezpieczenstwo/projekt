@@ -190,7 +190,7 @@ class TempUser(db.Model):
     hourly_rate = db.Column(db.Integer, nullable=True)
     bio = db.Column(db.Text, nullable=True)
     expired_at = db.Column(db.DateTime, default=datetime.utcnow() + timedelta(minutes=30))
-    auth_key = db.Column(db.Integer)
+    auth_key = db.Column(db.String(120))
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
