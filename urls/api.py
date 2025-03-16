@@ -426,7 +426,8 @@ def get_report_by_lesson_id(user,lesson_id):
 @api.route('/calendar', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_calendar.yml'))
 @jwt_required(role='teacher')
-def add_calendar():
+@jwt_get_user()
+def add_calendar(user):
     data = request.get_json()
 
     available_from = data.get('available_from')

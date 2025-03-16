@@ -175,13 +175,62 @@ def populate_calendars(num):
         db.session.commit()
         print(f"{num} kalendarzy dodano do bazy danych.")
 
+def create_teacher(subject_ids, difficulty_level_ids):
+    # subject_ids - 1-13, difficulty_level_ids - 1-5
+    with app.app_context():
+        teacher = Teacher(
+            name=fake.name(),
+            email=fake.email(),
+            subject_ids=subject_ids,
+            difficulty_level_ids=difficulty_level_ids,
+            hourly_rate=random.randint(50, 150),
+            role="teacher"
+        )
+        teacher.set_password("pass")
+        db.session.add(teacher)
+        db.session.commit()
+        print(f"Nauczyciel dodany do bazy danych.")
+
+def create_lesson(teacher_id, student_id, subject_id, difficulty_level_id):
+    with app.app_context():
+        teachers = Teacher.query.filter_by(teacher_id=teacher_id).all()
+        students = Student.query.filter_by(student_id=student_id).all()
+
+        if not teachers or not students:
+            print("Brak nauczycieli lub studentów w bazie danych.")
+            return
+
+
+        teacher = teachers[0]
+        student = students[0]
+        date = fake.date_time_this_year()
+
+        lesson = Lesson(
+            teacher_id=teacher.id,
+            student_id=student.id,
+            date=date,
+            subject_id=subject_id,
+            difficulty_level_id=difficulty_level_id,
+            status="scheduled",
+            price=teacher.hourly_rate
+        )
+        db.session.add(lesson)
+        db.session.commit()
+        print("Dodano lekcję do bazy danych.")
+
 
 if __name__ == "__main__":
     num_records = 10
     populate_difficulty_levels()
     populate_subjects()
+    create_teacher([1,2,3],[1,3])
+    create_teacher([1,5,8],[2])
+    create_teacher([10],[2])
     populate_teachers(num_records)
     populate_students(num_records)
+    create_lesson(1,1,1,1)
+    create_lesson(2,2,5,2)
+    create_lesson(3,3,10,2)
     populate_lessons(num_records)
     populate_reviews(num_records)
     populate_reports(num_records)
