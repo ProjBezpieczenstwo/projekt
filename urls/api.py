@@ -5,10 +5,9 @@ from datetime import datetime, timedelta
 import requests
 from flasgger import swag_from
 from flask import Blueprint, jsonify, request
+from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
     DifficultyLevel, db
-
-from helper import jwt_required, get_object_or_404,jwt_get_user
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
@@ -129,7 +128,7 @@ def get_reviews_by_id(teacher_id):
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_review.yml'))
 @jwt_required(role='student')
 @jwt_get_user()
-def add_review(user,teacher_id):
+def add_review(user, teacher_id):
     lessons = Lesson.query.filter_by(teacher_id=teacher_id, student_id=user.id).first()
 
     if not lessons:
@@ -161,7 +160,7 @@ def add_review(user,teacher_id):
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'delete_review.yml'))
 @jwt_required(role='student')
 @jwt_get_user()
-def delete_review(user,teacher_id):
+def delete_review(user, teacher_id):
     review = Review.query.filter_by(teacher_id=teacher_id, student_id=user.id).first()
 
     if not review:
@@ -285,8 +284,8 @@ def get_lesson(user):
 # @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_lesson_by_id.yml'))
 @jwt_required()
 def get_lesson_by_id(teacher_id):
-    teacher = get_object_or_404(Teacher,teacher_id)
-    if not isinstance(teacher,Teacher):
+    teacher = get_object_or_404(Teacher, teacher_id)
+    if not isinstance(teacher, Teacher):
         return teacher
 
     lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
@@ -315,8 +314,8 @@ def add_report(user):
     homework = data.get('homework')
     progress_rating = data.get('progress_rating')
 
-    lesson = get_object_or_404(Lesson,lesson_id)
-    if not isinstance(lesson,Lesson):
+    lesson = get_object_or_404(Lesson, lesson_id)
+    if not isinstance(lesson, Lesson):
         return lesson
 
     if user.id != lesson.teacher_id:
@@ -367,6 +366,7 @@ def add_report(user):
 @jwt_get_user()
 def get_report(user):
     role = user.role
+    reports = None
     if role == 'student':
         reports = LessonReport.query.filter_by(student_id=user.id).all()
     elif role == 'teacher':
@@ -395,7 +395,7 @@ def get_report(user):
 # @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_report.yml'))
 @jwt_required()
 @jwt_get_user()
-def get_report_by_lesson_id(user,lesson_id):
+def get_report_by_lesson_id(user, lesson_id):
     report = LessonReport.query.filter_by(lesson_id=lesson_id).first()
 
     if not report:
@@ -496,6 +496,17 @@ def update_lesson_status():
     return jsonify({'message': f'Updated {len(lessons_to_update)} lessons'}), 200
 
 
+@api.route('/delete-expired-temp-users', methods=['GET'])
+def delete_expired_temp_users():
+    expiration_time = datetime.utcnow()
+    db.session.query(TempUser).filter(TempUser.expired_at < expiration_time).delete()
+
+
 def update_lesson_status_helper():
     response = requests.post("http://localhost:5000/api/update-lesson-status")
+    return response.json(), response.status_code
+
+
+def delete_expired_temp_users_helper():
+    response = requests.get("http://localhost:5000/api/delete-expired")
     return response.json(), response.status_code
