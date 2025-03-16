@@ -1,13 +1,13 @@
-import random
+import logging
 import re
+import sys
+import uuid
 
-from flasgger import swag_from
 import requests
+from flasgger import swag_from
 from flask import Blueprint, jsonify, request
 from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin  # Importuj odpowiednie modele
-import uuid
-import logging
-import sys
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -26,7 +26,6 @@ def is_valid_email(email: str) -> bool:
 @auth.route('/register', methods=['POST'])
 @swag_from('../swagger_templates/register.yml')
 def register():
-
     data = request.get_json()
     new_user = None
 
@@ -55,7 +54,7 @@ def register():
 
     existing_user = TempUser.query.filter_by(email=email).first()
     if existing_user:
-        return jsonify({"message": "Verify your email address."}),400
+        return jsonify({"message": "Verify your email address."}), 400
 
     # Tworzenie użytkownika w zależności od roli
     try:
@@ -65,7 +64,9 @@ def register():
             subject_ids = data.get('subject_ids').replace("{", "").replace("}", "").split(',')
             difficulty_level_ids = data.get('difficulty_ids').replace("{", "").replace("}", "").split(',')
             hourly_rate = data.get('hourly_rate')
-
+            teacher_code = data.get('teacher_code')
+            if teacher_code != 2137:
+                return jsonify({'message': 'Invalid teacher code'}), 400
             if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
                 return jsonify({'message': 'Subject not found'}), 404
 
@@ -111,8 +112,8 @@ def register():
             db.session.commit()
             logging.info("commit")
         except Exception as e:
-            return jsonify({"XD":f"{e}"}),500
-        return jsonify({"message": "Verify your email now!"}),200
+            return jsonify({"XD": f"{e}"}), 500
+        return jsonify({"message": "Verify your email now!"}), 200
 
     except Exception as e:
         return jsonify({"message": "Internal server error"}), 500
@@ -158,6 +159,8 @@ def check_auth_key(auth_key):
     if not auth_key:
         return jsonify({"message": "Bad link."}), 400
     temp_user = TempUser.query.filter_by(auth_key=auth_key).first()
+    if not temp_user:
+        return jsonify({"message": "Invalid link"}), 400
     if temp_user.role == 'student':
         new_user = Student(
             name=temp_user.name,
