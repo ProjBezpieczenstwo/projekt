@@ -11,7 +11,7 @@ def get_object_or_404(model, object_id, type=int):
     id = parse_data(object_id, type)
     obj = model.query.filter_by(id=id).first()
     if obj is None:
-        return jsonify({'error': f'{model.__name__} not found'}), 404
+        return jsonify({'message': f'{model.__name__} not found'}), 404
     return obj
 
 

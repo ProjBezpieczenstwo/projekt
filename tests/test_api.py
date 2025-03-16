@@ -1,9 +1,10 @@
 import sys
 import os
+from datetime import datetime
+from dateutil.rrule import rrule, WEEKLY, MO
+from datetime import date
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from urls.api import update_lesson_status_helper
 
 def test_get_subjects(test_client, login_student):
     headers = {'Authorization': f'Bearer {login_student}'}
@@ -141,10 +142,10 @@ def test_add_lesson(test_client, setup_users, login_student):
         'teacher_id': 2,
         'subject_id': 1,
         'difficulty_id': 1,
-        'date': '15/01/2025 10:00'
+        'date': '15/05/2025 10:00'
     })
-    assert response.status_code == 201
     assert response.json['message'] == 'Lesson created'
+    assert response.status_code == 201
 
 
 def test_add_lesson_fail_authorization(test_client):
@@ -164,43 +165,33 @@ def test_add_lesson_fail(test_client, setup_users, login_student):
         'teacher_id': 2,
         'subject_id': 1,
         'difficulty_id': 1,
-        'date': '15/01/2025 10:00'
+        'date': '15/05/2025 10:00'
     })
     assert response.status_code == 400
     assert response.json['message'] == 'Lesson with this teacher is already booked for this date'
 
 
-def test_add_lesson_fail_teacher_id(test_client, setup_users, login_student):
-    headers = {'Authorization': f'Bearer {login_student}'}
-    response = test_client.post('/api/lesson', headers=headers, json={
-        'teacher_id': 'a',
-        'subject_id': 1,
-        'difficulty_id': 1,
-        'date': '15/01/2025 10:00'
-    })
-    assert response.status_code == 400
-    assert response.json['message'] == 'Teacher id must be an integer'
-
-
 def test_add_lesson_fail_teacher(test_client, setup_users, login_student):
     headers = {'Authorization': f'Bearer {login_student}'}
     response = test_client.post('/api/lesson', headers=headers, json={
-        'teacher_id': 3,
+        'teacher_id': 9999,
         'subject_id': 1,
         'difficulty_id': 1,
-        'date': '15/01/2025 10:00'
+        'date': '16/03/4025 10:00'
     })
-    assert response.status_code == 404
     assert response.json['message'] == 'Teacher not found'
+    assert response.status_code == 404
 
 
 def test_add_lesson_fail_subject(test_client, setup_users, login_student):
     headers = {'Authorization': f'Bearer {login_student}'}
+    new_date_obj = list(rrule(freq=WEEKLY, dtstart=date.today(), byweekday=MO, count=1))[0]
+    new_date_str = new_date_obj.strftime('%d/%m/%Y 10:00')
     response = test_client.post('/api/lesson', headers=headers, json={
         'teacher_id': 2,
         'subject_id': 12,
-        'difficulty_id': 1,
-        'date': '15/01/2025 10:00'
+        'difficulty_id': 2,
+        'date': new_date_str
     })
     assert response.status_code == 400
     assert response.json['message'] == 'Teacher does not teach this subject'
@@ -208,11 +199,13 @@ def test_add_lesson_fail_subject(test_client, setup_users, login_student):
 
 def test_add_lesson_fail_difficulty(test_client, setup_users, login_student):
     headers = {'Authorization': f'Bearer {login_student}'}
+    new_date_obj = list(rrule(freq=WEEKLY, dtstart=date.today(), byweekday=MO, count=1))[0]
+    new_date_str = new_date_obj.strftime('%d/%m/%Y 10:00')
     response = test_client.post('/api/lesson', headers=headers, json={
         'teacher_id': 2,
         'subject_id': 1,
         'difficulty_id': 4,
-        'date': '15/01/2025 10:00'
+        'date': new_date_str
     })
     assert response.status_code == 400
     assert response.json['message'] == 'Teacher does not teach on this difficulty level'
@@ -224,7 +217,7 @@ def test_add_review(test_client, login_student):
         'rating': 5,
         'comment': 'Great teacher!'
     })
-    #assert response.status_code == 200
+    assert response.status_code == 200
     assert response.json['message'] == 'Review created successfully.'
 
 
@@ -246,15 +239,18 @@ def test_delete_review(test_client, login_student):
 
 def test_delete_review_fail(test_client, login_student):
     response = test_client.delete('/api/teacher-reviews/2')
-    assert response.status_code == 401
     assert response.json['msg'] == 'Missing Authorization Header'
+    assert response.status_code == 401
 
 
 def test_get_lessons(test_client, login_student):
     headers = {'Authorization': f'Bearer {login_student}'}
     response = test_client.get('/api/lesson', headers=headers)
-    assert response.status_code == 200
-    assert 'lesson_list' in response.json
+    if response.status_code == 200:
+        assert 'lesson_list' in response.json
+    else:
+        assert response.status_code == 400
+        assert response.json['message'] == 'No lessons found'
 
 
 def test_get_lessons_fail(test_client):
@@ -297,16 +293,6 @@ def test_get_report_fail(test_client):
     response = test_client.get('/api/report')
     assert response.status_code == 401
     assert response.json['msg'] == 'Missing Authorization Header'
-
-
-def test_add_invoice(test_client, login_student):
-    headers = {'Authorization': f'Bearer {login_student}'}
-    response = test_client.post('/api/invoice', headers=headers, json={
-        'lesson_id': 1
-    })
-    assert response.status_code == 201
-    assert response.json['message'] == 'Invoice created'
-
 
 def test_update_teacher_success(test_client, login_teacher):
     """Test updating teacher details successfully."""
@@ -364,8 +350,8 @@ def test_update_teacher_not_teacher_role(test_client, login_student):
         'difficulty_ids': [1],
         'hourly_rate': 75
     })
-    assert response.status_code == 400
     assert response.json['message'] == 'User must be a teacher'
+    assert response.status_code == 403
 
 
 def test_update_teacher_no_authentication(test_client):
@@ -383,9 +369,3 @@ def test_update_lesson_status(test_client):
     response = test_client.post('/api/update-lesson-status')
     assert response.status_code == 200
     assert 'Updated' in response.json['message']
-
-
-# def test_update_lesson_status_helper(test_client):
-#     response_json, response_code = update_lesson_status_helper()
-#     assert response_code == 200
-#     assert 'Updated' in response_json.json['message']

@@ -61,8 +61,8 @@ def register():
         if role == 'student':
             new_user = TempUser(name=name, email=email, role='student', auth_key=auth_key)
         elif role == 'teacher':
-            subject_ids = data.get('subject_ids').replace("{", "").replace("}", "").split(',')
-            difficulty_level_ids = data.get('difficulty_ids').replace("{", "").replace("}", "").split(',')
+            subject_ids = data.get('subject_ids').strip("{}").split(',')
+            difficulty_level_ids = data.get('difficulty_ids').strip("{}").split(',')
             hourly_rate = data.get('hourly_rate')
             teacher_code = data.get('teacher_code')
             if teacher_code != 2137:

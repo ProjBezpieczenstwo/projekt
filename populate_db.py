@@ -152,28 +152,26 @@ def populate_reports(num):
         print(f"{num} raportów dodano do bazy danych.")
 
 
-def populate_calendars(num):
+def create_calendar(teacher_id, available_from, available_until, working_days):
     with app.app_context():
-        teachers = Teacher.query.all()
-
+        teacher = Teacher.query.filter_by(teacher_id=teacher_id).first()
         if not teachers:
             print("Brak nauczycieli w bazie danych.")
             return
 
-        for teacher in teachers:
-            available_from = time(random.randint(8, 10), 0, 0)  # Dostępne od 8:00-10:00
-            available_until = time(random.randint(17, 20), 0, 0)  # Dostępne do 17:00-20:00
-            working_days = random.sample(range(1, 8), random.randint(3, 5))  # 3-5 dni roboczych
+        available_from = time(available_from, 0, 0)  # Dostępne od 8:00-10:00
+        available_until = time(available_until, 0, 0)  # Dostępne do 17:00-20:00
+        working_days = working_days  # 3-5 dni roboczych [1-7]
 
-            calendar = Calendar(
-                teacher_id=teacher.id,
-                available_from=available_from,
-                available_until=available_until,
-                working_days=working_days
-            )
-            db.session.add(calendar)
+        calendar = Calendar(
+            teacher_id=teacher.id,
+            available_from=available_from,
+            available_until=available_until,
+            working_days=working_days
+        )
+        db.session.add(calendar)
         db.session.commit()
-        print(f"{num} kalendarzy dodano do bazy danych.")
+        print(f"Kalendarz dodano do bazy danych.")
 
 def create_teacher(subject_ids, difficulty_level_ids):
     # subject_ids - 1-13, difficulty_level_ids - 1-5
@@ -234,6 +232,7 @@ if __name__ == "__main__":
     populate_lessons(num_records)
     populate_reviews(num_records)
     populate_reports(num_records)
-    populate_calendars(num_records)
+    create_calendar(1,8,20,[1,3,4,5])
+    create_calendar(2,10,15,[1,2,3,4,5])
 
 
