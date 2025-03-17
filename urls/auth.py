@@ -65,7 +65,8 @@ def register():
             difficulty_level_ids = data.get('difficulty_ids').strip("{}").split(',')
             hourly_rate = data.get('hourly_rate')
             teacher_code = data.get('teacher_code')
-            if teacher_code != 2137:
+            logging.info(teacher_code, type(teacher_code))
+            if teacher_code != '2137':
                 return jsonify({'message': 'Invalid teacher code'}), 400
             if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
                 return jsonify({'message': 'Subject not found'}), 404
