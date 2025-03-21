@@ -150,7 +150,10 @@ def login():
             "role": user.role
         }), 200
     else:
-        return jsonify({"message": "Invalid email or password."}), 401
+        user = TempUser.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({"message": "Invalid email or password."}), 401
+        return jsonify({"message": "Verify your email."}), 401
 
 
 @auth.route('/confirm/<auth_key>', methods=['GET'])
