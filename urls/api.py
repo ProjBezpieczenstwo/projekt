@@ -1,13 +1,14 @@
 import os
+import requests
 import sys
 from datetime import datetime, timedelta
-
-import requests
 from flasgger import swag_from
 from flask import Blueprint, jsonify, request
 from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
-    DifficultyLevel, db
+    DifficultyLevel, db, WeekDay
+
+from app.models import BaseUser, TempUser
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
@@ -423,59 +424,42 @@ def get_report_by_lesson_id(user, lesson_id):
 ### Calendars ###
 
 
-@api.route('/calendar', methods=['POST'])
-@swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_calendar.yml'))
-@jwt_required(role='teacher')
-@jwt_get_user()
-def add_calendar(user):
-    data = request.get_json()
-
-    available_from = data.get('available_from')
-    available_until = data.get('available_until')
-    working_days = data.get('working_days')
-
-    if not available_from or not available_until or not working_days:
-        return jsonify({'message': 'Available dates or hours not provided'}), 400
-
-    try:
-        available_from = datetime.strptime(available_from, '%H:%M').time()
-        available_until = datetime.strptime(available_until, '%H:%M').time()
-    except ValueError:
-        return jsonify({'message': 'Available hours are not in %H:%M format'}), 400
-
-    try:
-        working_days = list(map(int, working_days))
-    except ValueError:
-        return jsonify(
-            {'message': 'Wrong type of working days, expected integers between 1 (Monday) and 7 (Sunday)'}), 400
-
-    if not all(0 < d < 8 for d in working_days):
-        return jsonify(
-            {'message': 'Wrong value of working days, expected integers between 1 (Monday) and 7 (Sunday)'}), 400
-
-    new_calendar = Calendar(
-        teacher_id=user.id,
-        available_from=available_from,
-        available_until=available_until,
-        working_days=working_days
-    )
-
-    db.session.add(new_calendar)
-    db.session.commit()
-
-    return jsonify({'message': 'Calendar created'}), 201
-
-
 @api.route('/calendar/<int:teacher_id>', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_calendar.yml'))
 @jwt_required()
 def get_calendar(teacher_id):
-    calendar = Calendar.query.filter_by(teacher_id=teacher_id).first()
-
-    if not calendar:
+    calendars = Calendar.query.filter_by(teacher_id=teacher_id).all()
+    if not calendars:
         return jsonify({'message': 'Calendar not found'}), 404
+    calendar_list = [calendar.to_dict() for calendar in calendars]
+    return jsonify(calendar_list=calendar_list), 200
 
-    return jsonify(calendar.to_dict()), 200
+
+@api.route('/calendar', methods=['POST', 'UPDATE'])
+@jwt_required(role='teacher')
+@jwt_get_user()
+def calendar_create(user):
+    data = request.get_json()
+    teacher_id = user.id
+    request_model = data.get('days')
+    if request.method == 'UPDATE':
+        clear_calendar(teacher_id)
+    if not request_model:
+        return jsonify({'message': 'Wrong days provided'}), 400
+    for data in request_model:
+        day = data.get('day')
+        available_from = data.get('available_from')
+        available_until = data.get('available_until')
+        new_entry = Calendar(
+            teacher_id=teacher_id,
+            day=day,
+            available_from=available_from,
+            available_until=available_until)
+        db.session.add(new_entry)
+    db.session.commit()
+    if request.method == 'UPDATE':
+        return jsonify({'message': 'Calendar updated'}), 201
+    return jsonify({'message': 'Calendar created'}), 201
 
 
 ### End of calendars ###
@@ -500,6 +484,40 @@ def update_lesson_status():
 def delete_expired_temp_users():
     expiration_time = datetime.utcnow()
     db.session.query(TempUser).filter(TempUser.expired_at < expiration_time).delete()
+
+
+@api.route('/weekdays/all', methods=['GET'])
+def weekdays_all():
+    weekdays = WeekDay.query.all()
+    weekdays_list = [weekday.to_dict() for weekday in weekdays]
+    return jsonify(weekdays=weekdays_list), 200
+
+
+@api.route('/admin/get_all_users', method=['GET'])
+@jwt_required(role='admin')
+def get_all_users():
+    users = Student.query.all() + Teacher.query.all() + TempUser.query.all()
+    response = [user.to_dict() for user in users]
+    return jsonify(users=response), 200
+
+
+@api.route('/admin/delete_user/<int:user_id>', methods=['GET'])
+def delete_user(user_id):
+    BaseUser.query().filter_by(id=user_id).delete()
+    db.session.commit()
+    return jsonify({"message": "Magic"}), 200
+
+
+@api.route('/admin/delete_temp_user/<int:user_id>', methods=['GET'])
+def delete_temp_user(user_id):
+    TempUser.query().filter_by(id=user_id).delete()
+    db.session.commit()
+    return jsonify({"message": "Magic"}), 200
+
+
+def clear_calendar(teacher_id):
+    db.session.query(Calendar).filter(Calendar.teacher_id == teacher_id).delete()
+    db.session.commit()
 
 
 def update_lesson_status_helper():

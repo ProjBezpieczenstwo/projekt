@@ -7,11 +7,21 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
+class WeekDay(db.Model):
+    __tablename__ = 'weekdays'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), nullable=False)
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+        }
+
 
 # Base class for students and teachers
 class BaseUser(db.Model):
     __tablename__ = 'baseusers'
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, ondelete='CASCADE')
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String, nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -35,17 +45,29 @@ class BaseUser(db.Model):
         # Generate JWT token for the user that expires after 10 days
         return create_access_token(identity=str(self.id), expires_delta=timedelta(days=10))
 
+    def to_dict(self):
+        return{
+            "id": self.id,
+            "email": self.email,
+            "name": self.name,
+            "role": self.role,
+            "created_at": self.created_at
+        }
+
 
 class Student(BaseUser):
     __tablename__ = 'students'
-    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
+    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True, ondelete='CASCADE')
 
     __mapper_args__ = {'polymorphic_identity': 'student'}
+
+    def to_dict(self):
+        return super().to_dict()
 
 
 class Teacher(BaseUser):
     __tablename__ = 'teachers'
-    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
+    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True, ondelete='CASCADE')
 
     subject_ids = db.Column(db.String(255), nullable=True)  # Comma-separated subject ids
     difficulty_level_ids = db.Column(db.String(255), nullable=True)  # Comma-separated level ids
@@ -53,9 +75,7 @@ class Teacher(BaseUser):
     bio = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
+        return super().to_dict() + {
             'subjects': self.subject_ids,
             'difficulty_levels': self.difficulty_level_ids,
             'bio': self.bio,
@@ -97,17 +117,17 @@ class Calendar(db.Model):
     __tablename__ = 'calendars'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete='CASCADE'), nullable=False)
-    available_from = db.Column(db.Time, nullable=False)
-    available_until = db.Column(db.Time, nullable=False)
-    working_days = db.Column(db.Text, nullable=False)  # List of ISO format weekdays (1-7)
+    weekday_id = db.Column(db.Integer, db.ForeignKey('weekdays.id', ondelete='CASCADE'), nullable=False)
+    available_from = db.Column(db.Integer, nullable=False)
+    available_until = db.Column(db.Integer, nullable=False)
 
     def to_dict(self):
         return {
             'id': self.id,
             'teacher_id': self.teacher_id,
-            'available_from': self.available_from.strftime("%H:%M"),
-            'available_until': self.available_until.strftime("%H:%M"),
-            'working_days': self.working_days
+            'weekday_id': self.weekday_id,
+            'available_from': self.available_from,
+            'available_until': self.available_until
         }
 
 
@@ -197,6 +217,25 @@ class TempUser(db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        dict = {
+            "id" : self.id,
+            "email": self.email,
+            "name" : self.name,
+            "role": self.role
+        }
+        if self.role == "Teacher":
+            dict += {
+                "subject_ids" : self.subject_ids,
+                "difficulty_level_ids" : self.difficulty_level_ids,
+                "hourly_rate" : self.hourly_rate
+            }
+        dict+= {
+            "expired_at" : self.expired_at.isoformat() if self.expired_at else None
+            "auth_key" : self.auth_key
+        }
+        return dict
 
 
 class Admin(BaseUser):
