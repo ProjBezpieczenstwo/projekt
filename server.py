@@ -28,6 +28,17 @@ try:
         back_scheduler.add_job(func=update_lesson_status_helper, trigger="interval", minutes=30)
         back_scheduler.add_job(func=delete_expired_temp_users_helper, trigger="interval", minutes=30)
         back_scheduler.start()
+
+        from models import WeekDay
+
+        if WeekDay.query.count() == 0:
+            weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            for name in weekday_names:
+                new_weekday = WeekDay(name=name)
+                db.session.add(new_weekday)
+            db.session.commit()
+            print("Weekdays have been added to the database.")
+
 except OperationalError as e:
     print("Database connection failed. Please ensure the database is running and accessible.")
     print(f"Error: {e}")
@@ -55,7 +66,7 @@ app.register_blueprint(api, url_prefix="/api")
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return jsonify({"error": "Page not found"}), 404
+    return jsonify({"message": "Page not found"}), 404
 
 
 if __name__ == '__main__':

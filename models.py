@@ -8,7 +8,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 db = SQLAlchemy()
 
 class WeekDay(db.Model):
-    __tablename__ = 'weekdays'
+    __tablename__ = 'weekday'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), nullable=False)
     def to_dict(self):
@@ -117,7 +117,7 @@ class Calendar(db.Model):
     __tablename__ = 'calendars'
     id = db.Column(db.Integer, primary_key=True)
     teacher_id = db.Column(db.Integer, db.ForeignKey('teachers.id', ondelete='CASCADE'), nullable=False)
-    weekday_id = db.Column(db.Integer, db.ForeignKey('weekdays.id', ondelete='CASCADE'), nullable=False)
+    weekday_id = db.Column(db.Integer, db.ForeignKey('weekday.id', ondelete='CASCADE'), nullable=False)
     available_from = db.Column(db.Integer, nullable=False)
     available_until = db.Column(db.Integer, nullable=False)
 
@@ -129,6 +129,7 @@ class Calendar(db.Model):
             'available_from': self.available_from,
             'available_until': self.available_until
         }
+
 
 
 class LessonReport(db.Model):

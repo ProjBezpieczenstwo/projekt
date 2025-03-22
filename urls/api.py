@@ -420,7 +420,7 @@ def get_report_by_lesson_id(user, lesson_id):
 
 
 ### Calendars ###
-@api.route('/calendar', methods=['POST', 'UPDATE','GET'])
+@api.route('/calendar', methods=['POST', 'GET'])
 @jwt_required(role='teacher')
 @jwt_get_user()
 def calendar_create(user):
@@ -430,27 +430,40 @@ def calendar_create(user):
             return jsonify({'message': 'Calendar not found'}), 404
         calendar_list = [calendar.to_dict() for calendar in calendars]
         return jsonify(calendar_list=calendar_list), 200
+
     data = request.get_json()
     teacher_id = user.id
     request_model = data.get('days')
-    if request.method == 'UPDATE':
-        clear_calendar(teacher_id)
-    if not request_model:
-        return jsonify({'message': 'Wrong days provided'}), 400
-    for data in request_model:
-        day = data.get('day')
-        available_from = data.get('available_from')
-        available_until = data.get('available_until')
+
+    for entry in request_model:
+        day = entry.get('day')
+        available_from = int(entry.get('available_from'))
+        available_until = int(entry.get('available_until'))
+        if available_from >= available_until:
+            return jsonify({
+                'message': f'Start time must be before end time for day {day}.'
+            }), 400
+        elif available_from < 16 or available_until > 22:
+            return jsonify({
+                'message': f'Invalid time format for day {day}.'
+            }), 400
+
+    clear_calendar(teacher_id)
+
+    for entry in request_model:
+        day = entry.get('day')
+        available_from = int(entry.get('available_from'))
+        available_until = int(entry.get('available_until'))
         new_entry = Calendar(
-            teacher_id=teacher_id,
-            day=day,
+            teacher_id=int(teacher_id),
+            weekday_id=int(day),
             available_from=available_from,
-            available_until=available_until)
+            available_until=available_until
+        )
         db.session.add(new_entry)
+
     db.session.commit()
-    if request.method == 'UPDATE':
-        return jsonify({'message': 'Calendar updated'}), 201
-    return jsonify({'message': 'Calendar created'}), 201
+    return jsonify({'message': 'Calendar updated'}), 201
 
 
 ### End of calendars ###
@@ -483,8 +496,7 @@ def weekdays_all():
     weekdays_list = [weekday.to_dict() for weekday in weekdays]
     return jsonify(weekdays=weekdays_list), 200
 
-
-@api.route('/admin/get_all_users', method=['GET'])
+@api.route('/admin/get_all_users', methods=['GET'])
 @jwt_required(role='admin')
 def get_all_users():
     users = Student.query.all() + Teacher.query.all() + TempUser.query.all()
