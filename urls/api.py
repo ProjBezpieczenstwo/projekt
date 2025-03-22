@@ -6,9 +6,7 @@ from flasgger import swag_from
 from flask import Blueprint, jsonify, request
 from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
-    DifficultyLevel, db, WeekDay
-
-from app.models import BaseUser, TempUser
+    DifficultyLevel, db, WeekDay, BaseUser, TempUser
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
@@ -422,23 +420,16 @@ def get_report_by_lesson_id(user, lesson_id):
 
 
 ### Calendars ###
-
-
-@api.route('/calendar/<int:teacher_id>', methods=['GET'])
-@swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_calendar.yml'))
-@jwt_required()
-def get_calendar(teacher_id):
-    calendars = Calendar.query.filter_by(teacher_id=teacher_id).all()
-    if not calendars:
-        return jsonify({'message': 'Calendar not found'}), 404
-    calendar_list = [calendar.to_dict() for calendar in calendars]
-    return jsonify(calendar_list=calendar_list), 200
-
-
-@api.route('/calendar', methods=['POST', 'UPDATE'])
+@api.route('/calendar', methods=['POST', 'UPDATE','GET'])
 @jwt_required(role='teacher')
 @jwt_get_user()
 def calendar_create(user):
+    if request.method == 'GET':
+        calendars = Calendar.query.filter_by(teacher_id=user.id).all()
+        if not calendars:
+            return jsonify({'message': 'Calendar not found'}), 404
+        calendar_list = [calendar.to_dict() for calendar in calendars]
+        return jsonify(calendar_list=calendar_list), 200
     data = request.get_json()
     teacher_id = user.id
     request_model = data.get('days')

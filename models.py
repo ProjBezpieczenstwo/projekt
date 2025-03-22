@@ -21,7 +21,7 @@ class WeekDay(db.Model):
 # Base class for students and teachers
 class BaseUser(db.Model):
     __tablename__ = 'baseusers'
-    id = db.Column(db.Integer, primary_key=True, ondelete='CASCADE')
+    id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String, nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -57,7 +57,7 @@ class BaseUser(db.Model):
 
 class Student(BaseUser):
     __tablename__ = 'students'
-    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True, ondelete='CASCADE')
+    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
 
     __mapper_args__ = {'polymorphic_identity': 'student'}
 
@@ -67,7 +67,7 @@ class Student(BaseUser):
 
 class Teacher(BaseUser):
     __tablename__ = 'teachers'
-    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True, ondelete='CASCADE')
+    id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
 
     subject_ids = db.Column(db.String(255), nullable=True)  # Comma-separated subject ids
     difficulty_level_ids = db.Column(db.String(255), nullable=True)  # Comma-separated level ids
@@ -232,7 +232,7 @@ class TempUser(db.Model):
                 "hourly_rate" : self.hourly_rate
             }
         dict+= {
-            "expired_at" : self.expired_at.isoformat() if self.expired_at else None
+            "expired_at" : self.expired_at.isoformat() if self.expired_at else None,
             "auth_key" : self.auth_key
         }
         return dict
