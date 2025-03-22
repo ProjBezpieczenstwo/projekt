@@ -29,7 +29,7 @@ try:
         back_scheduler.add_job(func=delete_expired_temp_users_helper, trigger="interval", minutes=30)
         back_scheduler.start()
 
-        from models import WeekDay
+        from models import WeekDay, DifficultyLevel, Subject
 
         if WeekDay.query.count() == 0:
             weekday_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -38,6 +38,39 @@ try:
                 db.session.add(new_weekday)
             db.session.commit()
             print("Weekdays have been added to the database.")
+
+
+        if DifficultyLevel.query.count() == 0:
+            difficulty_levels = [
+                DifficultyLevel(id=1, name="Primary School"),
+                DifficultyLevel(id=2, name="Lower Secondary School"),
+                DifficultyLevel(id=3, name="Higher Secondary School"),
+                DifficultyLevel(id=4, name="Bachelor's"),
+                DifficultyLevel(id=5, name="Master's"),
+            ]
+            db.session.add_all(difficulty_levels)
+            db.session.commit()
+            print(f"Dodano poziomy nauczania do bazy danych.")
+
+        if Subject.query.count() == 0:
+            subjects = [
+                Subject(id=1, name="Maths"),
+                Subject(id=2, name="Physics"),
+                Subject(id=3, name="Biology"),
+                Subject(id=4, name="Chemistry"),
+                Subject(id=5, name="Geography"),
+                Subject(id=6, name="Science"),
+                Subject(id=7, name="IT"),
+                Subject(id=8, name="English"),
+                Subject(id=9, name="Polish"),
+                Subject(id=10, name="Spanish"),
+                Subject(id=11, name="French"),
+                Subject(id=12, name="German"),
+                Subject(id=13, name="Italian"),
+            ]
+            db.session.add_all(subjects)
+            db.session.commit()
+            print(f"Dodano przedmioty do bazy danych.")
 
 except OperationalError as e:
     print("Database connection failed. Please ensure the database is running and accessible.")
