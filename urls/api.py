@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
     DifficultyLevel, db, WeekDay, BaseUser, TempUser
+from pdf_generator import PDFInvoiceGenerator
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
@@ -516,6 +517,18 @@ def delete_temp_user(user_id):
     TempUser.query().filter_by(id=user_id).delete()
     db.session.commit()
     return jsonify({"message": "Magic"}), 200
+
+
+@api.route('/calendar/pdf', methods=['GET'])
+@jwt_required(role='teacher')
+@jwt_get_user()
+def get_calendar_pdf(user):
+    teacher = Teacher.query.filter_by(id=user.id).first()
+    calendar = Calendar.query.filter_by(teacher_id=teacher.id).first()
+    weekdays_with_hours = [[WeekDay.query.filter_by(id=c.weekday_id).first().name,c.available_from,c.available_from]  for c in calendar]
+    lessons = Lesson.query.filter_by(teacher_id=teacher.id).all()
+    return PDFInvoiceGenerator.create_invoice(weekdays_with_hours=weekdays_with_hours, lessons=lessons)
+
 
 
 def clear_calendar(teacher_id):
