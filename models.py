@@ -75,12 +75,12 @@ class Teacher(BaseUser):
     bio = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
-        return super().to_dict() + {
+        return {**super().to_dict(), **{
             'subjects': self.subject_ids,
             'difficulty_levels': self.difficulty_level_ids,
             'bio': self.bio,
             'hourly_rate': self.hourly_rate
-        }
+        }}
 
     __mapper_args__ = {'polymorphic_identity': 'teacher'}
 

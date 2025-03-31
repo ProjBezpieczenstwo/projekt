@@ -35,7 +35,27 @@ def get_difficulty_levels():
     return jsonify({'difficulty_levels': [d.to_dict() for d in difficulty_levels]}), 200
 
 
-### Teacher list ###
+### Teacher ###
+
+@api.route('/teacher/<int:teacher_id>', methods=['GET'])
+@swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_teacher_details.yml'))
+@jwt_required()
+def get_teacher_details(teacher_id):
+    teacher = get_object_or_404(Teacher, teacher_id)
+    if not isinstance(teacher, Teacher):
+        return teacher
+
+    # Pobieramy kalendarz nauczyciela (wszystkie wpisy)
+    calendar_entries = Calendar.query.filter_by(teacher_id=teacher.id).all()
+    available_hours = [entry.to_dict() for entry in calendar_entries] if calendar_entries else []
+
+    # Przygotowujemy słownik danych nauczyciela; zakładamy, że teacher.to_dict()
+    # zwraca podstawowe dane (name, hourly_rate, subjects, difficulty_levels, itp.)
+    teacher_data = teacher.to_dict()
+    teacher_data['available_hours'] = available_hours
+
+    return jsonify({'teacher': teacher_data}), 200
+
 
 @api.route('/teacher-list', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_teacher.yml'))
@@ -51,15 +71,26 @@ def get_teacher_list():
     if difficulty_id:
         filters.append(Teacher.difficulty_level_ids.match(difficulty_id))
 
-    teachers = Teacher.query.filter(*filters).all()
+    # Parametry paginacji
+    limit = request.args.get('limit', 20, type=int)  # domyślnie 20
+    offset = request.args.get('offset', 0, type=int)
+
+    teachers_query = Teacher.query.filter(*filters)
+    total_teachers = teachers_query.count()
+
+    teachers = teachers_query.limit(limit).offset(offset).all()
 
     if not teachers:
         return jsonify({'message': 'Teachers not found'}), 404
 
-    return jsonify({'teacher_list': [teacher.to_dict() for teacher in teachers]}), 200
+    return jsonify({
+        'total': total_teachers,
+        'teacher_list': [teacher.to_dict() for teacher in teachers]
+    }), 200
 
 
-### End of teacher list ###
+
+### End of teacher ###
 
 @api.route('/teacher-update', methods=['PUT'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'update_teacher.yml'))
