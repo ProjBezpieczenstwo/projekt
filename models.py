@@ -7,10 +7,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 db = SQLAlchemy()
 
+
 class WeekDay(db.Model):
     __tablename__ = 'weekday'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), nullable=False)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -46,7 +48,7 @@ class BaseUser(db.Model):
         return create_access_token(identity=str(self.id), expires_delta=timedelta(days=10))
 
     def to_dict(self):
-        return{
+        return {
             "id": self.id,
             "email": self.email,
             "name": self.name,
@@ -129,7 +131,6 @@ class Calendar(db.Model):
             'available_from': self.available_from,
             'available_until': self.available_until
         }
-
 
 
 class LessonReport(db.Model):
@@ -221,20 +222,20 @@ class TempUser(db.Model):
 
     def to_dict(self):
         dict = {
-            "id" : self.id,
+            "id": self.id,
             "email": self.email,
-            "name" : self.name,
+            "name": self.name,
             "role": self.role
         }
         if self.role == "Teacher":
             dict += {
-                "subject_ids" : self.subject_ids,
-                "difficulty_level_ids" : self.difficulty_level_ids,
-                "hourly_rate" : self.hourly_rate
+                "subject_ids": self.subject_ids,
+                "difficulty_level_ids": self.difficulty_level_ids,
+                "hourly_rate": self.hourly_rate
             }
-        dict+= {
-            "expired_at" : self.expired_at.isoformat() if self.expired_at else None,
-            "auth_key" : self.auth_key
+        dict += {
+            "expired_at": self.expired_at.isoformat() if self.expired_at else None,
+            "auth_key": self.auth_key
         }
         return dict
 
