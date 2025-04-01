@@ -580,3 +580,5 @@ def update_lesson_status_helper():
 def delete_expired_temp_users_helper():
     response = requests.get("http://localhost:5000/api/delete-expired")
     return response.json(), response.status_code
+
+
