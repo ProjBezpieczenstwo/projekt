@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import requests
 from flasgger import swag_from
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
 from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
     DifficultyLevel, db, WeekDay, BaseUser, TempUser
@@ -507,11 +507,18 @@ def get_calendar_pdf(user):
         Lesson.teacher_id == user.id,
         Lesson.status != "completed"
     ).all()
-    weekdays_with_hours = {WeekDay.query.filter_by(id=entry.weekday_id).first().name: (entry.available_from, entry.available_until)
-                for entry in calendar}
+    weekdays_with_hours = {
+        WeekDay.query.filter_by(id=entry.weekday_id).first().name: (entry.available_from, entry.available_until)
+        for entry in calendar}
     pdf_gen = PDFLessonPlanGenerator()
-    return pdf_gen.generate_pdf(weekdays_with_hours, lessons)
+    pdf_file = pdf_gen.generate_pdf(weekdays_with_hours, lessons)
 
+    return send_file(
+        pdf_file,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f"lesson_plan_{date.today().strftime('%Y-%m-%d')}.pdf"
+    )
 
 
 ### End of calendars ###
@@ -580,5 +587,3 @@ def update_lesson_status_helper():
 def delete_expired_temp_users_helper():
     response = requests.get("http://localhost:5000/api/delete-expired")
     return response.json(), response.status_code
-
-
