@@ -243,3 +243,21 @@ class Admin(BaseUser):
     __tablename__ = 'admins'
     id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
     __mapper_args__ = {'polymorphic_identity': 'admin'}
+
+
+class AccessCode(db.Model):
+    __tablename__ = 'access_codes'
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(255), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=14))
+    created_by = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'created_at': self.created_at.isoformat(),
+            'expires_at': self.expires_at.isoformat(),
+            'created_by': self.created_by
+        }

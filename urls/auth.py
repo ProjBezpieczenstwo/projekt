@@ -5,7 +5,7 @@ import uuid
 
 import requests
 from flasgger import swag_from
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin  # Importuj odpowiednie modele
 
 logging.basicConfig(
@@ -85,7 +85,7 @@ def register():
             )
         elif role == 'admin':
             secret = data.get('secret')
-            if secret != 123:
+            if int(secret) != 123:
                 return jsonify({'message': 'Hackerman do not try to access this'}), 400
 
             new_user = Admin(name=name, email=email, role='admin')
@@ -93,17 +93,18 @@ def register():
         if not new_user:
             return jsonify({"message": "Error occurred while creating new user."}), 500
         # Wysłanie e-maila aktywacyjnego
-        email_service_url = "http://email_service:5001/send-email"
-        email_payload = {"email_receiver": email, "auth_key": auth_key}
-        logging.info("przed postem")
-        response = requests.post(email_service_url, json=email_payload)
-        logging.info("po poscie")
-        logging.info(response.status_code)
-        logging.info(response.json())
-        logging.info(response)
-        logging.info(response != 200)
-        if response.status_code != 200:
-            return jsonify({response.json()}), 500
+        if role != 'admin':
+            email_service_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001/send-email")
+            email_payload = {"email_receiver": email, "auth_key": auth_key}
+            logging.info("przed postem")
+            response = requests.post(email_service_url, json=email_payload)
+            logging.info("po poscie")
+            logging.info(response.status_code)
+            logging.info(response.json())
+            logging.info(response)
+            logging.info(response != 200)
+            if response.status_code != 200:
+                return jsonify({response.json()}), 500
         try:
             logging.info("po tescie response coda xD")
             new_user.set_password(password)
@@ -135,11 +136,12 @@ def login():
     if not is_valid_email(email):
         return jsonify({"message": "Invalid email format."}), 400
 
-    # Find the user by email in both Student and Teacher tables
-
+    # Find the user by email in Student, Teacher, or Admin tables
     user = Student.query.filter_by(email=email).first()
     if not user:
         user = Teacher.query.filter_by(email=email).first()
+    if not user:
+        user = Admin.query.filter_by(email=email).first()
 
     if user and user.check_password(password):
         # Generate JWT token
@@ -154,6 +156,7 @@ def login():
         if not user:
             return jsonify({"message": "Invalid email or password."}), 401
         return jsonify({"message": "Verify your email."}), 401
+
 
 
 @auth.route('/confirm/<auth_key>', methods=['GET'])
