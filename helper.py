@@ -3,7 +3,7 @@ from functools import wraps
 from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
-    DifficultyLevel
+    DifficultyLevel, BaseUser
 
 
 def get_object_or_404(model, object_id, type=int):
@@ -30,7 +30,7 @@ def check_data(model, data):
 
 def get_user_by_jwt():
     user_id = get_jwt_identity()
-    return Teacher.query.filter_by(id=user_id).first() or Student.query.filter_by(id=user_id).first()
+    return BaseUser.query.filter_by(id=user_id).first()
 
 
 def jwt_required(role=None):

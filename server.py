@@ -4,6 +4,7 @@ from datetime import datetime
 from models import db
 from urls.auth import auth
 from urls.api import api, update_lesson_status_helper, delete_expired_temp_users_helper
+from urls.admin import admin
 from config import Config
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -95,6 +96,7 @@ swagger = Swagger(app, template={
 
 app.register_blueprint(auth, url_prefix="/auth")
 app.register_blueprint(api, url_prefix="/api")
+app.register_blueprint(admin,url_prefix="/admin")
 
 
 @app.errorhandler(404)

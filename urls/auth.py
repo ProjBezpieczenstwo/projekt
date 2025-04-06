@@ -6,7 +6,7 @@ import uuid
 import requests
 from flasgger import swag_from
 from flask import Blueprint, jsonify, request, current_app
-from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin  # Importuj odpowiednie modele
+from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin,AccessCode  # Importuj odpowiednie modele
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,15 +65,13 @@ def register():
             difficulty_level_ids = data.get('difficulty_ids').strip("{}").split(',')
             hourly_rate = data.get('hourly_rate')
             teacher_code = data.get('teacher_code')
-            logging.info(teacher_code, type(teacher_code))
-            if teacher_code != '2137':
+            codes = [str(n.code) for n in AccessCode.query.all()]
+            if str(teacher_code) not in codes:
                 return jsonify({'message': 'Invalid teacher code'}), 400
             if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
                 return jsonify({'message': 'Subject not found'}), 404
-
             if not all(DifficultyLevel.query.filter_by(id=int(s)).first() for s in difficulty_level_ids):
                 return jsonify({'message': 'Difficulty level not found'}), 404
-
             new_user = TempUser(
                 name=name,
                 email=email,
@@ -83,6 +81,7 @@ def register():
                 role='teacher',
                 auth_key=auth_key
             )
+            AccessCode.query.filter_by(code=teacher_code).delete()
         elif role == 'admin':
             secret = data.get('secret')
             if int(secret) != 123:
@@ -94,7 +93,7 @@ def register():
             return jsonify({"message": "Error occurred while creating new user."}), 500
         # Wysłanie e-maila aktywacyjnego
         if role != 'admin':
-            email_service_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001/send-email")
+            email_service_url = current_app.config.get("EMAIL_SERVICE_URL", "http://email_service:5001") + "/send-email"
             email_payload = {"email_receiver": email, "auth_key": auth_key}
             logging.info("przed postem")
             response = requests.post(email_service_url, json=email_payload)

@@ -222,7 +222,7 @@ class TempUser(db.Model):
 
     def to_dict(self):
         if self.role == "Teacher":
-            res += {
+            res = {
                 "id": self.id,
                 "email": self.email,
                 "name": self.name,
@@ -234,7 +234,7 @@ class TempUser(db.Model):
                 "auth_key": self.auth_key
             }
         else:
-            res += {
+            res = {
                 "id": self.id,
                 "email": self.email,
                 "name": self.name,
