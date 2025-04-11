@@ -114,6 +114,8 @@ def register():
             logging.info("commit")
         except Exception as e:
             return jsonify({"XD": f"{e}"}), 500
+        if role == 'admin':
+            return jsonify({"message": "Account created"}), 200
         return jsonify({"message": "Verify your email now!"}), 200
 
     except Exception as e:

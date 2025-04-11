@@ -11,7 +11,22 @@ admin = Blueprint('admin', __name__)
 @jwt_required(role='admin')
 def get_access_codes():
     codes = AccessCode.query.all()
-    return jsonify({'access_codes': [code.to_dict() for code in codes]}), 200
+    access_codes_data = []
+
+    for code in codes:
+        admin_user = BaseUser.query.get(code.created_by)
+
+        code_dict = {
+            'id': code.id,
+            'code': code.code,
+            'created_at': code.created_at.isoformat(),
+            'expires_at': code.expires_at.isoformat(),
+            'created_by': admin_user.email if admin_user else 'Unknown'
+        }
+
+        access_codes_data.append(code_dict)
+
+    return jsonify({'access_codes': access_codes_data}), 200
 
 
 # Endpoint do generowania nowego access code (opcjonalnie wysyłamy e-mail)

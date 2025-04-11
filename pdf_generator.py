@@ -51,7 +51,7 @@ class PDFLessonPlanGenerator:
         while current_date <= end_date:
             self.pdf.add_page()
             self.pdf.set_font('DejaVu', 'B', 14)
-            self.pdf.cell(0, 10, f"Plan tygodniowy od {current_date.strftime('%Y-%m-%d')}", ln=True, align='C')
+            self.pdf.cell(0, 10, f"Plan tygodniowy od {current_date.strftime('%Y-%m-%d')} do {(current_date+timedelta(days=6)).strftime('%Y-%m-%d')}", ln=True, align='C')
             self.pdf.ln(5)
 
             # Wyciągamy daty dla tego tygodnia
