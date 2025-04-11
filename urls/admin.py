@@ -1,8 +1,10 @@
-import requests
 import uuid
-from flask import Blueprint, jsonify, request,current_app
+
+import requests
+from flask import Blueprint, jsonify, request, current_app
 from helper import jwt_required, jwt_get_user
 from models import Teacher, Student, db, BaseUser, TempUser, AccessCode
+
 admin = Blueprint('admin', __name__)
 
 
@@ -21,7 +23,8 @@ def get_access_codes():
             'code': code.code,
             'created_at': code.created_at.isoformat(),
             'expires_at': code.expires_at.isoformat(),
-            'created_by': admin_user.email if admin_user else 'Unknown'
+            'created_by': admin_user.email if admin_user else 'Unknown',
+            'email_to': code.email_to
         }
 
         access_codes_data.append(code_dict)
@@ -38,17 +41,20 @@ def create_access_code(admin_user):
     email = data.get('email')  # opcjonalne pole
     # Generujemy unikalny kod (możesz zastosować inny algorytm)
     new_code = str(uuid.uuid4())
-    access_code = AccessCode(code=new_code, created_by=admin_user.id)
     if email:
+        access_code = AccessCode(code=new_code, created_by=admin_user.id, email_to=email)
         try:
             # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
             mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
             response = requests.post(mail_url, json={"email_receiver": email, "token": new_code})
             # Możesz obsłużyć response, jeśli potrzebujesz
-            if response != 200:
-                return jsonify({response.json()}), 500
+            if response.status_code != 200:
+                return jsonify(response.json()), 500
         except Exception as e:
             current_app.logger.error(f"Error sending email: {e}")
+            return jsonify({"message": f"Error sending email: {e}"}), 500
+    else:
+        access_code = AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided")
     db.session.add(access_code)
     db.session.commit()
     return jsonify({'message': 'Access code created', 'access_code': access_code.to_dict()}), 201

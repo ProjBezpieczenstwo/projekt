@@ -1,6 +1,7 @@
 from datetime import datetime
 from datetime import timedelta
 
+from flask import current_app
 from flask_jwt_extended import create_access_token
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -77,9 +78,11 @@ class Teacher(BaseUser):
     bio = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
+        current_app.logger.error(f"{get_names_from_ids(self.subject_ids, Subject)}")
+        current_app.logger.error(f"{get_names_from_ids(self.difficulty_level_ids, DifficultyLevel)}")
         return {**super().to_dict(), **{
-            'subjects': self.subject_ids,
-            'difficulty_levels': self.difficulty_level_ids,
+            'subjects': get_names_from_ids(self.subject_ids, Subject),
+            'difficulty_levels': get_names_from_ids(self.difficulty_level_ids, DifficultyLevel),
             'bio': self.bio,
             'hourly_rate': self.hourly_rate
         }}
@@ -258,6 +261,7 @@ class AccessCode(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=14))
     created_by = db.Column(db.Integer, db.ForeignKey('admins.id'), nullable=False)
+    email_to = db.Column(db.String(255), nullable=False)
 
     def to_dict(self):
         return {
@@ -265,5 +269,18 @@ class AccessCode(db.Model):
             'code': self.code,
             'created_at': self.created_at.isoformat(),
             'expires_at': self.expires_at.isoformat(),
-            'created_by': self.created_by
+            'created_by': self.created_by,
+            'email_to': self.email_to
         }
+
+
+def get_names_from_ids(id_string, model):
+    if not id_string:
+        return []
+    try:
+        id_string = id_string.replace("{", "").replace("}", "")
+        ids = [int(i.strip()) for i in id_string.split(',') if i.strip().isdigit()]
+        names = db.session.query(model.name).filter(model.id.in_(ids)).all()
+        return [name for (name,) in names]
+    except Exception as e:
+        return []

@@ -7,7 +7,7 @@ from flasgger import swag_from
 from flask import Blueprint, jsonify, request, send_file
 from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
-    DifficultyLevel, db, WeekDay, BaseUser, TempUser, AccessCode
+    DifficultyLevel, db, WeekDay, TempUser
 from pdf_generator import PDFLessonPlanGenerator
 
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
@@ -58,24 +58,23 @@ def get_teacher_details(teacher_id):
     return jsonify({'teacher': teacher_data}), 200
 
 
-@api.route('/teacher-list', methods=['GET'])
+@api.route('/teacher-list/<int:page>', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_teacher.yml'))
 @jwt_required()
-def get_teacher_list():
+def get_teacher_list(page):
     filters = []
 
     subject = request.args.get('subject')
     difficulty_id = request.args.get('difficulty_id')
 
     if subject:
-        filters.append(Teacher.subject_ids.match(subject))
+        subject_query = Subject.query.filter_by(name=subject).first()
+        filters.append(Teacher.subject_ids.match(subject_query.id))
     if difficulty_id:
-        filters.append(Teacher.difficulty_level_ids.match(difficulty_id))
-
-    # Parametry paginacji
-    limit = request.args.get('limit', 20, type=int)  # domyślnie 20
-    offset = request.args.get('offset', 0, type=int)
-
+        difficulty_query = DifficultyLevel.query.filter_by(name=difficulty_id).first()
+        filters.append(Teacher.difficulty_level_ids.match(difficulty_query.id))
+    offset = 0 if page == 0 else page * 20
+    limit = offset + 20
     teachers_query = Teacher.query.filter(*filters)
     total_teachers = teachers_query.count()
 
@@ -214,10 +213,11 @@ def delete_review(user, teacher_id):
 def add_lesson(user):
     data = request.get_json()
     teacher_id = data.get('teacher_id')
-    subject_id = data.get('subject_id')
-    difficulty_level_id = data.get('difficulty_id')
+    subject = data.get('subject')
+    difficulty_level = data.get('difficulty')
     date = data.get('date')
-
+    subject_id = Subject.query.filter_by(name=subject).first().id
+    difficulty_level_id = DifficultyLevel.query.filter_by(name=difficulty_level).id
     subject = get_object_or_404(Subject, subject_id)
     if not isinstance(subject, Subject):
         return subject
