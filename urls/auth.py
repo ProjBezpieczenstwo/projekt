@@ -192,3 +192,82 @@ def check_auth_key(auth_key):
     db.session.add(new_user)
     db.session.commit()
     return jsonify({"message": f"{temp_user.role.capitalize()} registered successfully."}), 201
+
+
+
+#TEST REGISTER
+
+@auth.route('/test/register', methods=['POST'])
+@swag_from('../swagger_templates/register.yml')
+def test_register():
+    data = request.get_json()
+    new_user = None
+
+    name = data.get('name')
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role')  # student or teacher
+    logging.info("przed auth_key")
+    if not name or not email or not password or not role:
+        return jsonify({"message": "Name, email, password, and role are required."}), 400
+
+    if not is_valid_email(email):
+        return jsonify({"message": "Invalid email format."}), 400
+
+    if role not in ['student', 'teacher', 'admin']:
+        return jsonify({"message": "Role must be either 'student' or 'teacher'."}), 400
+
+    # Sprawdzenie czy e-mail już istnieje
+    existing_user = (Student.query.filter_by(email=email).first()
+                     or Teacher.query.filter_by(email=email).first()
+                     or Admin.query.filter_by(email=email).first())
+    if existing_user:
+        return jsonify({"message": "Email already in use."}), 400
+
+
+    # Tworzenie użytkownika w zależności od roli
+    try:
+        if role == 'student':
+            new_user = Student(name=name, email=email, role='student')
+        elif role == 'teacher':
+            subject_ids = data.get('subject_ids').strip("{}").split(',')
+            difficulty_level_ids = data.get('difficulty_ids').strip("{}").split(',')
+            hourly_rate = data.get('hourly_rate')
+            teacher_code = data.get('teacher_code')
+            codes = [str(n.code) for n in AccessCode.query.all()]
+            if str(teacher_code) not in codes:
+                return jsonify({'message': 'Invalid teacher code'}), 400
+            if not all(Subject.query.filter_by(id=int(s)).first() for s in subject_ids):
+                return jsonify({'message': 'Subject not found'}), 404
+            if not all(DifficultyLevel.query.filter_by(id=int(s)).first() for s in difficulty_level_ids):
+                return jsonify({'message': 'Difficulty level not found'}), 404
+            new_user = Teacher(
+                name=name,
+                email=email,
+                subject_ids=subject_ids,
+                difficulty_level_ids=difficulty_level_ids,
+                hourly_rate=int(hourly_rate),
+                role='teacher'
+            )
+            AccessCode.query.filter_by(code=teacher_code).delete()
+        elif role == 'admin':
+            secret = data.get('secret')
+            if int(secret) != 123:
+                return jsonify({'message': 'Hackerman do not try to access this'}), 400
+
+            new_user = Admin(name=name, email=email, role='admin')
+
+        if not new_user:
+            return jsonify({"message": "Error occurred while creating new user."}), 500
+        # Wysłanie e-maila aktywacyjnego
+        logging.info("po tescie response coda xD")
+        new_user.set_password(password)
+        logging.info("set password")
+        db.session.add(new_user)
+        logging.info("new user db")
+        db.session.commit()
+        logging.info("commit")
+        return jsonify({"message": "Account created"}), 200
+
+    except Exception as e:
+        return jsonify({"message": "Internal server error"}), 500

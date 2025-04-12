@@ -152,20 +152,20 @@ def get_reviews_by_id(teacher_id):
     return jsonify(reviews=reviews_list), 200
 
 
-@api.route('/teacher-reviews/<int:teacher_id>', methods=['POST'])
+@api.route('/add_review', methods=['POST'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'add_review.yml'))
 @jwt_required(role='student')
 @jwt_get_user()
-def add_review(user, teacher_id):
-    lessons = Lesson.query.filter_by(teacher_id=teacher_id, student_id=user.id).first()
+def add_review(user):
+    data = request.get_json()
+    lesson_id = data.get('lesson_id')
+    rating = data.get('rating')
+    rating = int(rating)
+    comment = data.get('comment')
+    lessons = Lesson.query.filter_by(id=lesson_id).first()
 
     if not lessons:
         return jsonify({'message': 'Student had no lessons with the teacher'}), 400
-
-    data = request.get_json()
-
-    rating = data.get('rating')
-    comment = data.get('comment')
 
     if not rating:
         return jsonify({'message': 'Rating must be provided'}), 400
@@ -175,10 +175,11 @@ def add_review(user, teacher_id):
 
     if not comment:
         comment = ""
-
+    teacher_id = lessons.teacher_id
+    lessons.is_reviewed = True
     new_review = Review(teacher_id=teacher_id, student_id=user.id, rating=rating, comment=comment)
-
     db.session.add(new_review)
+    db.session.add(lessons)
     db.session.commit()
 
     return jsonify({"message": "Review created successfully."}), 200

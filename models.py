@@ -106,15 +106,15 @@ class Lesson(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
-            'teacher_id': self.teacher_id,
-            'student_id': self.student_id,
-            'subject': Subject.query.filter_by(id=self.subject_id).first().name,
+            'teacher_id': Teacher.query.get(self.teacher_id).name,
+            'student_id': Student.query.get(self.student_id).name,
+            'subject': Subject.query.get(self.subject_id).name,
             'date': self.date.strftime("%d/%m/%Y %H:%M"),
             'status': self.status,
             'price': self.price,
             'is_reviewed': self.is_reviewed,
             'is_reported': self.is_reported,
-            'difficulty_id': DifficultyLevel.query.filter_by(id=self.difficulty_level_id).first().name,
+            'difficulty_id': DifficultyLevel.query.get(self.difficulty_level_id).name,
         }
 
 
@@ -172,7 +172,7 @@ class Review(db.Model):
         return {
             'id': self.id,
             'teacher_id': self.teacher_id,
-            'student_id': self.student_id,
+            'student_id': Student.query.get(self.student_id).name,
             'rating': self.rating,
             'comment': self.comment,
             'created_at': self.created_at.isoformat() if self.created_at else None

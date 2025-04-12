@@ -58,11 +58,11 @@ class PDFLessonPlanGenerator:
             week_dates = [current_date + timedelta(days=i) for i in range(7)]
 
             # Nagłówek: kolumny = dni tygodnia
-            self.pdf.set_font('DejaVu', 'B', 4)
+            self.pdf.set_font('DejaVu', 'B', 7)
             self.pdf.cell(25, 10, "Godzina", border=1, align='C')
             for d in week_dates:
                 day_label = f"{self.names[d.strftime('%A')]} ({d.strftime('%d.%m')})"
-                self.pdf.cell(25, 10, day_label, border=1, align='C')
+                self.pdf.cell(23, 10, day_label, border=1, align='C')
             self.pdf.ln()
 
             # Zakładamy zakres godzin od 6 do 22
@@ -92,7 +92,7 @@ class PDFLessonPlanGenerator:
                         self.pdf.set_fill_color(255, 255, 255)
                         text = ""
 
-                    self.pdf.cell(25, 10, text[:20] + ("..." if len(text) > 20 else ""), border=1, align='C', fill=True)
+                    self.pdf.cell(23, 10, text[:20] + ("..." if len(text) > 20 else ""), border=1, align='C', fill=True)
 
                 self.pdf.ln()
 
