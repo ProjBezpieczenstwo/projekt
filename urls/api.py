@@ -457,13 +457,23 @@ def get_calendar_for_teacher(teacher_id):
     result = []
     for cal in calendar:
         weekday = WeekDay.query.get(cal.weekday_id)
+        available_from_hour = cal.available_from
+        available_until_hour = cal.available_until
+
+        # Generowanie godzin dostępnych między available_from i available_until
+        available_hours = []
+        current_hour = available_from_hour
+        while current_hour < available_until_hour:
+            available_hours.append(f"{current_hour:02d}:00")
+            current_hour += 1
+
         result.append({
             'id': cal.id,
             'teacher_id': cal.teacher_id,
             'weekday': weekday.name,
-            'available_from': cal.available_from,
-            'available_until': cal.available_until
+            'available_hours': available_hours  # Lista godzin, np. ["10:00", "11:00"]
         })
+
     return jsonify({'calendar': result}), 200
 
 
