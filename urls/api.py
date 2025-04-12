@@ -450,6 +450,23 @@ def get_report_by_lesson_id(user, lesson_id):
 
 
 ### Calendars ###
+@api.route('/calendar/<int:teacher_id>', methods=['GET'])
+@jwt_required()
+def get_calendar_for_teacher(teacher_id):
+    calendar = Calendar.query.filter_by(teacher_id=teacher_id).all()
+    result = []
+    for cal in calendar:
+        weekday = WeekDay.query.get(cal.weekday_id)
+        result.append({
+            'id': cal.id,
+            'teacher_id': cal.teacher_id,
+            'weekday': weekday.name,
+            'available_from': cal.available_from,
+            'available_until': cal.available_until
+        })
+    return jsonify({'calendar': result}), 200
+
+
 @api.route('/calendar', methods=['POST', 'GET'])
 @jwt_required(role='teacher')
 @jwt_get_user()
