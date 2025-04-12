@@ -214,8 +214,10 @@ def add_lesson(user):
     subject = data.get('subject')
     difficulty_level = data.get('difficulty')
     date = data.get('date')
-    subject_id = Subject.query.filter_by(name=subject).first().id
-    difficulty_level_id = DifficultyLevel.query.filter_by(name=difficulty_level).id
+    subject = Subject.query.filter_by(name=str(subject)).first()
+    subject_id = subject.id
+    difficulty_level = DifficultyLevel.query.filter_by(name=str(difficulty_level)).first()
+    difficulty_level_id = difficulty_level.id
     subject = get_object_or_404(Subject, subject_id)
     if not isinstance(subject, Subject):
         return subject
@@ -235,27 +237,6 @@ def add_lesson(user):
     teacher = get_object_or_404(Teacher, teacher_id)
     if not isinstance(teacher, Teacher):
         return teacher
-
-    calendar = Calendar.query.filter_by(teacher_id=teacher_id).first()
-
-    if not calendar:
-        return jsonify({'message': 'Teacher does not have a calendar set'}), 400
-
-    if date < datetime.utcnow():
-        return jsonify({'message': 'Lesson time must be in the future'}), 400
-
-    if date.isoweekday() not in set(map(int, calendar.working_days.replace("{", "").replace("}", "").split(','))):
-        return jsonify({'message': 'Teacher does not work on this weekday'}), 400
-
-    if not (calendar.available_from <= date.time() and (date + timedelta(hours=1)).time() <= calendar.available_until):
-        return jsonify({'message': 'Teacher does not work in this hours'}), 400
-
-    if int(subject_id) not in set(map(int, teacher.subject_ids.strip("{}").split(','))):
-        return jsonify({'message': 'Teacher does not teach this subject'}), 400
-
-    if int(difficulty_level_id) not in set(
-            map(int, teacher.difficulty_level_ids.replace("{", "").replace("}", "").split(','))):
-        return jsonify({'message': 'Teacher does not teach on this difficulty level'}), 400
 
     if Lesson.query.filter_by(teacher_id=teacher_id, date=date).first():
         return jsonify({'message': 'Lesson with this teacher is already booked for this date'}), 400

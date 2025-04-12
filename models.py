@@ -108,13 +108,13 @@ class Lesson(db.Model):
             'id': self.id,
             'teacher_id': self.teacher_id,
             'student_id': self.student_id,
-            'subject': self.subject_id,
+            'subject': Subject.query.filter_by(id=self.subject_id).first().name,
             'date': self.date.strftime("%d/%m/%Y %H:%M"),
             'status': self.status,
             'price': self.price,
             'is_reviewed': self.is_reviewed,
             'is_reported': self.is_reported,
-            'difficulty_id': self.difficulty_level_id,
+            'difficulty_id': DifficultyLevel.query.filter_by(id=self.difficulty_level_id).first().name,
         }
 
 
