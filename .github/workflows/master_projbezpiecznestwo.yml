@@ -40,7 +40,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
       - name: Wait for previous provisioning to finish
         run: |
-          APP=backend-app
+          APP=backend
           RG=Projekt_Bezpieczeństwo
           echo "Checking provisioningState..."
           STATE=$(az containerapp show \
