@@ -50,7 +50,7 @@ def create_access_code(admin_user):
     try:
         # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
         mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
-        response = requests.post(mail_url, json={"email_receiver": email, "token": ','.join('code_list')})
+        response = requests.post(mail_url, json={"email_receiver": email, "token": '\n'.join('code_list')})
         # Możesz obsłużyć response, jeśli potrzebujesz
         if response.status_code != 200:
             return jsonify(response.json()), 500
