@@ -38,41 +38,28 @@ def get_access_codes():
 @jwt_get_user()
 def create_access_code(admin_user):
     data = request.get_json()
-    email = data.get('email')
-    number = data.get('number')# opcjonalne pole
-    # Generujemy unikalny kod (możesz zastosować inny algorytm)
-    if email:
-        access_code = []
-        if number:
-            for i in range(1,int(number)):
-                new_code = str(uuid.uuid4())
-                access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
-        else:
-            new_code = str(uuid.uuid4())
-            access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
-        try:
-            new_code = [c.code for c in access_code]
-            # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
-            mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
-            response = requests.post(mail_url, json={"email_receiver": email, "token": new_code})
-            # Możesz obsłużyć response, jeśli potrzebujesz
-            if response.status_code != 200:
-                return jsonify(response.json()), 500
-        except Exception as e:
-            current_app.logger.error(f"Error sending email: {e}")
-            return jsonify({"message": f"Error sending email: {e}"}), 500
-    else:
-        access_code = []
-        if number:
-            for i in range(1,int(number)):
-                new_code = str(uuid.uuid4())
-                access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided"))
-        else:
-            new_code = str(uuid.uuid4())
-            access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided"))
-    db.session.add(access_code)
+    email = data.get('email', 'Not provided')
+    number = data.get('number', '1')# opcjonalne pole
+    # Generujemy unikalny kod
+    access_codes = []
+    code_list = []
+    for i in range(int(number)):
+        new_code = str(uuid.uuid4())
+        code_list.append(new_code)
+        access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
+    try:
+        # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
+        mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
+        response = requests.post(mail_url, json={"email_receiver": email, "token": code_list})
+        # Możesz obsłużyć response, jeśli potrzebujesz
+        if response.status_code != 200:
+            return jsonify(response.json()), 500
+    except Exception as e:
+        current_app.logger.error(f"Error sending email: {e}")
+        return jsonify({"message": f"Error sending email: {e}"}), 500
+    db.session.bulk_save_objects(access_code)
     db.session.commit()
-    return jsonify({'message': 'Access code created', 'access_code': access_code.to_dict()}), 201
+    return jsonify({'message': 'Access code created'}), 201
 
 
 # Endpoint do usuwania access code
