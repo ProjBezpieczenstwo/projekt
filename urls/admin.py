@@ -47,19 +47,20 @@ def create_access_code(admin_user):
         new_code = str(uuid.uuid4())
         code_list.append(new_code)
         access_codes.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
-    try:
-        codes_string = '\n'.join(code_list)
-        # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
-        mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
-        response = requests.post(mail_url, json={"email_receiver": email, "token": codes_string})
-        logging.info(f"email: {email}")
-        logging.info(f"codes: {codes_string}")
-        # Możesz obsłużyć response, jeśli potrzebujesz
-        if response.status_code != 200:
-            return jsonify(response.json()), 500
-    except Exception as e:
-        current_app.logger.error(f"Error sending email: {e}")
-        return jsonify({"message": f"Error sending email: {e}"}), 500
+    if email != 'Not provided':
+        try:
+            codes_string = '\n'.join(code_list)
+            # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
+            mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
+            response = requests.post(mail_url, json={"email_receiver": email, "token": codes_string})
+            logging.info(f"email: {email}")
+            logging.info(f"codes: {codes_string}")
+            # Możesz obsłużyć response, jeśli potrzebujesz
+            if response.status_code != 200:
+                return jsonify(response.json()), 500
+        except Exception as e:
+            current_app.logger.error(f"Error sending email: {e}")
+            return jsonify({"message": f"Error sending email: {e}"}), 500
     db.session.bulk_save_objects(access_codes)
     db.session.commit()
     return jsonify({'message': 'Access code created'}), 201
