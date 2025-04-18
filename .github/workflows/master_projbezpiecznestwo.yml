@@ -38,7 +38,24 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-
+      - name: Wait for previous provisioning to finish
+        run: |
+          APP=backend-app
+          RG=Projekt_Bezpieczeństwo
+          echo "Checking provisioningState..."
+          STATE=$(az containerapp show \
+            --name $APP \
+            --resource-group $RG \
+            --query properties.provisioningState -o tsv)
+          until [ "$STATE" = "Succeeded" ]; do
+            echo "  provisioningState is '$STATE'; waiting 15s..."
+            sleep 15
+            STATE=$(az containerapp show \
+              --name $APP \
+              --resource-group $RG \
+              --query properties.provisioningState -o tsv)
+          done
+          echo ":white_check_mark: provisioningState is Succeeded, safe to deploy."  # :contentReference[oaicite:0]{index=0}
       - name: Deploy to Azure Container App
         uses: azure/container-apps-deploy-action@v1
         with:
