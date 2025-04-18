@@ -62,8 +62,14 @@ def create_access_code(admin_user):
             current_app.logger.error(f"Error sending email: {e}")
             return jsonify({"message": f"Error sending email: {e}"}), 500
     else:
-        new_code = str(uuid.uuid4())
-        access_code = AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided")
+        access_code = []
+        if number:
+            for i in range(1,int(number)):
+                new_code = str(uuid.uuid4())
+                access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided"))
+        else:
+            new_code = str(uuid.uuid4())
+            access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to="Not provided"))
     db.session.add(access_code)
     db.session.commit()
     return jsonify({'message': 'Access code created', 'access_code': access_code.to_dict()}), 201
