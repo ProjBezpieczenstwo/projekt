@@ -46,7 +46,7 @@ def create_access_code(admin_user):
     for i in range(int(number)):
         new_code = str(uuid.uuid4())
         code_list.append(new_code)
-        access_code.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
+        access_codes.append(AccessCode(code=new_code, created_by=admin_user.id, email_to=email))
     try:
         # Zakładamy, że endpoint usługi mailowej jest dostępny pod adresem skonfigurowanym w konfiguracji
         mail_url = current_app.config.get("EMAIL_SERVICE_URL", "http://127.0.0.1:5001") + "/token-email"
@@ -57,7 +57,7 @@ def create_access_code(admin_user):
     except Exception as e:
         current_app.logger.error(f"Error sending email: {e}")
         return jsonify({"message": f"Error sending email: {e}"}), 500
-    db.session.bulk_save_objects(access_code)
+    db.session.bulk_save_objects(access_codes)
     db.session.commit()
     return jsonify({'message': 'Access code created'}), 201
 
