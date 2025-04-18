@@ -66,11 +66,14 @@ def get_teacher_list(page):
 
     subject = request.args.get('subject')
     difficulty_id = request.args.get('difficulty_id')
+    name = request.args.get('name')
 
     if subject:
         filters.append(Teacher.subject_ids.match(subject))
     if difficulty_id:
         filters.append(Teacher.difficulty_level_ids.match(difficulty_id))
+    if name:
+        filters.append(Teacher.name.ilike(f"%{name}%"))
     offset = 0 if page == 0 else page * 20
     limit = offset + 20
     teachers_query = Teacher.query.filter(*filters)
