@@ -103,7 +103,7 @@ class Lesson(db.Model):
     price = db.Column(db.Float, nullable=False)
 
     def to_dict(self):
-        return {
+        data = {
             'id': self.id,
             'teacher_id': Teacher.query.get(self.teacher_id).name,
             'student_id': Student.query.get(self.student_id).name,
@@ -113,8 +113,11 @@ class Lesson(db.Model):
             'price': self.price,
             'is_reviewed': self.is_reviewed,
             'is_reported': self.is_reported,
-            'difficulty_id': DifficultyLevel.query.get(self.difficulty_level_id).name,
+            'difficulty_id': DifficultyLevel.query.get(self.difficulty_level_id).name
         }
+        if self.is_reported:
+            data['report'] = Report.query.filter_by(lessonid=self.id).first().to_dict()
+        return data
 
 
 class Calendar(db.Model):
