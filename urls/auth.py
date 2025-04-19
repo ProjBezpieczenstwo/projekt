@@ -17,7 +17,6 @@ auth = Blueprint('auth', __name__)
 
 
 def is_valid_email(email: str) -> bool:
-    # Regex for an email expression
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(email_regex, email) is not None
 
@@ -28,24 +27,20 @@ def is_valid_email(email: str) -> bool:
 def register():
     data = request.get_json()
     new_user = None
-
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
-    role = data.get('role')  # student or teacher
+    role = data.get('role')
     logging.info("przed auth_key")
     auth_key = str(uuid.uuid4())
     logging.info("po")
     if not name or not email or not password or not role:
         return jsonify({"message": "Name, email, password, and role are required."}), 400
-
     if not is_valid_email(email):
         return jsonify({"message": "Invalid email format."}), 400
 
     if role not in ['student', 'teacher', 'admin']:
         return jsonify({"message": "Role must be either 'student' or 'teacher'."}), 400
-
-    # Sprawdzenie czy e-mail już istnieje
     existing_user = (Student.query.filter_by(email=email).first()
                      or Teacher.query.filter_by(email=email).first()
                      or Admin.query.filter_by(email=email).first())
@@ -55,8 +50,6 @@ def register():
     existing_user = TempUser.query.filter_by(email=email).first()
     if existing_user:
         return jsonify({"message": "Verify your email address."}), 400
-
-    # Tworzenie użytkownika w zależności od roli
     try:
         if role == 'student':
             new_user = TempUser(name=name, email=email, role='student', auth_key=auth_key)
@@ -127,25 +120,18 @@ def register():
 @swag_from('../swagger_templates/login.yml')
 def login():
     data = request.get_json()
-
     email = data.get('email')
     password = data.get('password')
-
     if not email or not password:
         return jsonify({"message": "Email, password are required."}), 400
-
     if not is_valid_email(email):
         return jsonify({"message": "Invalid email format."}), 400
-
-    # Find the user by email in Student, Teacher, or Admin tables
     user = Student.query.filter_by(email=email).first()
     if not user:
         user = Teacher.query.filter_by(email=email).first()
     if not user:
         user = Admin.query.filter_by(email=email).first()
-
     if user and user.check_password(password):
-        # Generate JWT token
         access_token = user.generate_jwt()
         return jsonify({
             "message": "Login successful.",
@@ -161,7 +147,6 @@ def login():
 
 
 @auth.route('/confirm/<auth_key>', methods=['GET'])
-# @swag_from('../swagger_templates/login.yml')
 def check_auth_key(auth_key):
     new_user = None
     if not auth_key:
@@ -202,7 +187,6 @@ def check_auth_key(auth_key):
 def test_register():
     data = request.get_json()
     new_user = None
-
     name = data.get('name')
     email = data.get('email')
     password = data.get('password')
@@ -216,16 +200,11 @@ def test_register():
 
     if role not in ['student', 'teacher', 'admin']:
         return jsonify({"message": "Role must be either 'student' or 'teacher'."}), 400
-
-    # Sprawdzenie czy e-mail już istnieje
     existing_user = (Student.query.filter_by(email=email).first()
                      or Teacher.query.filter_by(email=email).first()
                      or Admin.query.filter_by(email=email).first())
     if existing_user:
         return jsonify({"message": "Email already in use."}), 400
-
-
-    # Tworzenie użytkownika w zależności od roli
     try:
         if role == 'student':
             new_user = Student(name=name, email=email, role='student')
@@ -259,7 +238,6 @@ def test_register():
 
         if not new_user:
             return jsonify({"message": "Error occurred while creating new user."}), 500
-        # Wysłanie e-maila aktywacyjnego
         logging.info("po tescie response coda xD")
         new_user.set_password(password)
         logging.info("set password")

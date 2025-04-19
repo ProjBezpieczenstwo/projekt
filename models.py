@@ -71,9 +71,8 @@ class Student(BaseUser):
 class Teacher(BaseUser):
     __tablename__ = 'teachers'
     id = db.Column(None, db.ForeignKey('baseusers.id'), primary_key=True)
-
-    subject_ids = db.Column(db.String(255), nullable=True)  # Comma-separated subject ids
-    difficulty_level_ids = db.Column(db.String(255), nullable=True)  # Comma-separated level ids
+    subject_ids = db.Column(db.String(255), nullable=True)
+    difficulty_level_ids = db.Column(db.String(255), nullable=True)
     hourly_rate = db.Column(db.Integer, nullable=True)
     bio = db.Column(db.Text, nullable=True)
 

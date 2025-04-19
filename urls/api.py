@@ -16,19 +16,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 api = Blueprint('api', __name__)
 
-
+### 404 ###
 @api.errorhandler(404)
 def page_not_found(e):
     return jsonify({"error": "Page not found"}), 404
 
-
+### SUBJECTS ###
 @api.route('/subjects', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_subjects.yml'))
 def get_subjects():
     subjects = Subject.query.all()
     return jsonify({'subjects': [s.to_dict() for s in subjects]}), 200
 
-
+### DIFFICULTY-LEVELS ###
 @api.route('/difficulty-levels', methods=['GET'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_difficulty_levels.yml'))
 def get_difficulty_levels():
@@ -45,16 +45,10 @@ def get_teacher_details(teacher_id):
     teacher = get_object_or_404(Teacher, teacher_id)
     if not isinstance(teacher, Teacher):
         return teacher
-
-    # Pobieramy kalendarz nauczyciela (wszystkie wpisy)
     calendar_entries = Calendar.query.filter_by(teacher_id=teacher.id).all()
     available_hours = [entry.to_dict() for entry in calendar_entries] if calendar_entries else []
-
-    # Przygotowujemy słownik danych nauczyciela; zakładamy, że teacher.to_dict()
-    # zwraca podstawowe dane (name, hourly_rate, subjects, difficulty_levels, itp.)
     teacher_data = teacher.to_dict()
     teacher_data['available_hours'] = available_hours
-
     return jsonify({'teacher': teacher_data}), 200
 
 
@@ -89,8 +83,6 @@ def get_teacher_list(page):
         'teacher_list': [teacher.to_dict() for teacher in teachers]
     }), 200
 
-
-### End of teacher ###
 
 @api.route('/teacher-update', methods=['PUT'])
 @swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'update_teacher.yml'))
@@ -128,7 +120,7 @@ def update_teacher(user):
 
     db.session.commit()
     return jsonify({'message': 'Teacher details updated'}), 200
-
+### End of teacher ###
 
 ### Reviews ###
 
@@ -312,6 +304,19 @@ def get_lesson_by_id(teacher_id):
     return jsonify(lesson_list=lesson_list), 200
 
 
+@api.route('/leeson/<int:lesson_id>', methods=['PUT'])
+@jwt_required()
+def change_lesson_status(lesson_id):
+    lesson = Lesson.query.get(lesson_id)
+    if not lesson:
+        return jsonify({'message': 'No lesson found'}), 400
+    if lesson.date + timedelta(hours=1) < datetime.now():
+        return jsonify({'message':'You can not update lesson less than 1 hour before start'}),400
+    lesson.status = 'cancelled'
+    db.session.add(lesson)
+    db.commit()
+    return jsonify({'message' : 'Lesson successfully canceled'}), 200
+
 ### End of lessons ###
 
 
@@ -372,37 +377,6 @@ def add_report(user):
     db.session.commit()
 
     return jsonify({'message': 'Report created'}), 201
-
-
-@api.route('/report', methods=['GET'])
-@swag_from(os.path.join(SWAGGER_TEMPLATE_DIR, 'get_report.yml'))
-@jwt_required()
-@jwt_get_user()
-def get_report(user):
-    role = user.role
-    reports = None
-    if role == 'student':
-        reports = LessonReport.query.filter_by(student_id=user.id).all()
-    elif role == 'teacher':
-        reports = LessonReport.query.filter_by(teacher_id=user.id).all()
-
-    if not reports:
-        return jsonify({'message': 'No reports found'}), 400
-
-    report_list = []
-    for report in reports:
-        report_list.append(
-            {"student_name": Student.query.filter_by(id=report.student_id).first().name,
-             "teacher_name": Teacher.query.filter_by(id=report.teacher_id).first().name,
-             "subject": Lesson.query.filter_by(id=report.lesson_id).first().subject_id,
-             "date": Lesson.query.filter_by(id=report.lesson_id).first().date.strftime("%d/%m/%Y %H:%M"),
-             "homework": report.homework,
-             "progress_rating": report.progress_rating,
-             "comment": report.comment,
-             }
-        )
-
-    return jsonify({'report_list': report_list}), 200
 
 
 @api.route('/report/<int:lesson_id>', methods=['GET'])
@@ -533,6 +507,7 @@ def get_calendar_pdf(user):
 
 ### End of calendars ###
 
+### HELPERS ###
 
 @api.route('/update-lesson-status', methods=['POST'])
 def update_lesson_status():
@@ -561,6 +536,7 @@ def weekdays_all():
     weekdays_list = [weekday.to_dict() for weekday in weekdays]
     return jsonify(weekdays=weekdays_list), 200
 
+### End of helpers ###
 
 def clear_calendar(teacher_id):
     db.session.query(Calendar).filter(Calendar.teacher_id == teacher_id).delete()
