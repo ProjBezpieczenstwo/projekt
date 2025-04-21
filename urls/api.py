@@ -314,7 +314,7 @@ def change_lesson_status(lesson_id):
         return jsonify({'message':'You can not update lesson less than 1 hour before start'}),400
     lesson.status = 'cancelled'
     db.session.add(lesson)
-    db.commit()
+    db.session.commit()
     return jsonify({'message' : 'Lesson successfully canceled'}), 200
 
 ### End of lessons ###
