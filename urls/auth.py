@@ -77,7 +77,8 @@ def register():
             AccessCode.query.filter_by(code=teacher_code).delete()
         elif role == 'admin':
             secret = data.get('secret')
-            if int(secret) != 123:
+            admin_secret = current_app.config.get("ADMIN_SECRET")
+            if secret != admin_secret:
                 return jsonify({'message': 'Hackerman do not try to access this'}), 400
 
             new_user = Admin(name=name, email=email, role='admin')
