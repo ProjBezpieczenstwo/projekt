@@ -486,7 +486,7 @@ def get_calendar_pdf(user):
     calendar = Calendar.query.filter_by(teacher_id=user.id).all()
     lessons = Lesson.query.filter(
         Lesson.teacher_id == user.id,
-        Lesson.status != "completed"
+        Lesson.status == "scheduled"
     ).all()
     weekdays_with_hours = {
         WeekDay.query.filter_by(id=entry.weekday_id).first().name: (entry.available_from, entry.available_until)
