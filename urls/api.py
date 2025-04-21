@@ -234,8 +234,6 @@ def add_lesson(user):
     if not isinstance(teacher, Teacher):
         return teacher
 
-    if Lesson.query.filter_by(teacher_id=teacher_id, date=date).first():
-        return jsonify({'message': 'Lesson with this teacher is already booked for this date'}), 400
 
     if Lesson.query.filter_by(student_id=user.id, date=date).first():
         return jsonify({'message': 'User has already booked lesson for this date'}), 400
