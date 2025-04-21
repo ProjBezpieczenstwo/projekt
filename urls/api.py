@@ -340,9 +340,6 @@ def add_report(user):
     if user.id != lesson.teacher_id:
         return jsonify({'message': 'Teacher does not belong to this lesson and cannot create report'}), 400
 
-    if lesson.date + timedelta(hours=1) > datetime.now():
-        return jsonify({'message': 'Report cannot be created before the end of the lesson'}), 400
-
     if not progress_rating:
         return jsonify({'message': 'Rating must be provided'}), 400
 
