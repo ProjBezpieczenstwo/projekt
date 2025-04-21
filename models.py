@@ -116,7 +116,7 @@ class Lesson(db.Model):
             'difficulty_id': DifficultyLevel.query.get(self.difficulty_level_id).name
         }
         if self.is_reported:
-            data['report'] = LessonReport.query.filter_by(lessonid=self.id).first().to_dict()
+            data['report'] = LessonReport.query.filter_by(lesson_id=self.id).first().to_dict()
         return data
 
 
