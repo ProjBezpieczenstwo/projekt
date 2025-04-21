@@ -304,7 +304,7 @@ def get_lesson_by_id(teacher_id):
     return jsonify(lesson_list=lesson_list), 200
 
 
-@api.route('/leeson/<int:lesson_id>', methods=['PUT'])
+@api.route('/lesson/<int:lesson_id>', methods=['PUT'])
 @jwt_required()
 def change_lesson_status(lesson_id):
     lesson = Lesson.query.get(lesson_id)
