@@ -368,9 +368,9 @@ def add_report(user):
         student_id=lesson.student_id,
         teacher_id=lesson.teacher_id
     )
-
-    db.session.query(Lesson).filter_by(id=lesson_id).update({'is_reported': True})
+    lesson.is_reported = True
     db.session.add(new_report)
+    db.session.add(lesson)
     db.session.commit()
 
     return jsonify({'message': 'Report created'}), 201
