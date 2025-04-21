@@ -427,8 +427,9 @@ def get_calendar_for_teacher(teacher_id):
             'weekday': weekday.name,
             'available_hours': available_hours  # Lista godzin, np. ["10:00", "11:00"]
         })
-
-    return jsonify({'calendar': result}), 200
+    if result:
+        return jsonify({'calendar': result}), 200
+    return jsonify({'message': 'No calendar found'}), 400
 
 
 @api.route('/calendar', methods=['POST', 'GET'])
