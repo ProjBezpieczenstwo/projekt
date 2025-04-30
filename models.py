@@ -79,12 +79,19 @@ class Teacher(BaseUser):
     def to_dict(self):
         current_app.logger.error(f"{get_names_from_ids(self.subject_ids, Subject)}")
         current_app.logger.error(f"{get_names_from_ids(self.difficulty_level_ids, DifficultyLevel)}")
-        return {**super().to_dict(), **{
+        resp = {**super().to_dict(), **{
             'subjects': get_names_from_ids(self.subject_ids, Subject),
             'difficulty_levels': get_names_from_ids(self.difficulty_level_ids, DifficultyLevel),
             'bio': self.bio,
             'hourly_rate': self.hourly_rate
         }}
+        reviews = Review.query.filter_by(teacher_id=self.id).all()
+        if reviews:
+            total = sum(review.rating for review in reviews)
+            resp['avg'] = round(total / len(reviews), 2)
+        else:
+            resp['avg'] = 0.00
+        return resp
 
     __mapper_args__ = {'polymorphic_identity': 'teacher'}
 
