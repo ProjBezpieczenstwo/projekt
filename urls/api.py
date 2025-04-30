@@ -9,7 +9,7 @@ from helper import jwt_required, get_object_or_404, jwt_get_user
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
     DifficultyLevel, db, WeekDay, TempUser
 from pdf_generator import PDFLessonPlanGenerator
-
+from sqlalchemy import and_
 SWAGGER_TEMPLATE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../swagger_templates'))
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -234,8 +234,11 @@ def add_lesson(user):
     if not isinstance(teacher, Teacher):
         return teacher
 
-
-    if Lesson.query.filter_by(student_id=user.id, date=date).first():
+    if Lesson.query.filter(and_(
+            Lesson.student_id == user.id,
+            Lesson.date == date,
+            Lesson.status != "cancelled"
+    )).first():
         return jsonify({'message': 'User has already booked lesson for this date'}), 400
 
     new_lesson = Lesson(
@@ -306,11 +309,13 @@ def get_lesson_by_id(teacher_id):
 @jwt_required()
 def change_lesson_status(lesson_id):
     lesson = Lesson.query.get(lesson_id)
+    comment = request.args.get('comment')
     if not lesson:
         return jsonify({'message': 'No lesson found'}), 400
     if lesson.date + timedelta(hours=1) < datetime.now():
         return jsonify({'message':'You can not update lesson less than 1 hour before start'}),400
     lesson.status = 'cancelled'
+    lesson.cancellation_comment = comment
     db.session.add(lesson)
     db.session.commit()
     return jsonify({'message' : 'Lesson successfully canceled'}), 200

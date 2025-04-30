@@ -101,6 +101,7 @@ class Lesson(db.Model):
     is_reviewed = db.Column(db.Boolean, nullable=False, default=False)
     is_reported = db.Column(db.Boolean, nullable=False, default=False)
     price = db.Column(db.Float, nullable=False)
+    cancellation_comment = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         data = {
@@ -117,6 +118,8 @@ class Lesson(db.Model):
         }
         if self.is_reported:
             data['report'] = LessonReport.query.filter_by(lesson_id=self.id).first().to_dict()
+        if self.cancellation_comment:
+            data['cancellation_comment'] = self.cancellation_comment
         return data
 
 

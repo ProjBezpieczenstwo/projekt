@@ -6,7 +6,9 @@ import uuid
 import requests
 from flasgger import swag_from
 from flask import Blueprint, jsonify, request, current_app
-from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin,AccessCode  # Importuj odpowiednie modele
+
+from helper import jwt_required, jwt_get_user
+from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin, AccessCode, BaseUser
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,6 +21,89 @@ auth = Blueprint('auth', __name__)
 def is_valid_email(email: str) -> bool:
     email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(email_regex, email) is not None
+
+
+@auth.route('/update/<int:user_id>', methods=['POST'])
+@jwt_required(role='admin')
+def update_admin(user_id):
+    user = BaseUser.query.filter_by(id=user_id).first()
+    return update(user)
+
+
+@auth.route('/user', methods=['GET'])
+@jwt_required()
+@jwt_get_user()
+def user_credentials(user):
+    if user.role == 'student':
+        student = Student.query.filter_by(id=user.id).first()
+        return jsonify(user=student), 200
+    else:
+        teacher = Teacher.query.filter_by(id=user.id).first()
+        return jsonify(user=teacher), 200
+
+
+@auth.route('/update', methods=['POST'])
+@jwt_required()
+@jwt_get_user()
+def update(user):
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No input data provided"}), 400
+
+    updated = False
+    if 'email' in data:
+        new_email = data['email'].strip().lower()
+        if new_email != user.email:
+            if BaseUser.query.filter_by(email=new_email).first():
+                return jsonify({"error": "Email already in use"}), 409
+            user.email = new_email
+            updated = True
+
+    if 'name' in data:
+        user.name = data['name'].strip()
+        updated = True
+
+    if 'password' in data:
+        password = data['password']
+        if len(password) < 6:
+            return jsonify({"error": "Password too short"}), 400
+        user.set_password(password)
+        updated = True
+    if user.role == 'teacher':
+        if 'bio' in data:
+            user.bio = data['bio'].strip()
+            updated = True
+
+        if 'hourly_rate' in data:
+            try:
+                user.hourly_rate = int(data['hourly_rate'])
+                updated = True
+            except ValueError:
+                return jsonify({"error": "Hourly rate must be an integer"}), 400
+
+        if 'subject_ids' in data:
+            if isinstance(data['subject_ids'], list):
+                user.subject_ids = ','.join(map(str, data['subject_ids']))
+                updated = True
+            else:
+                return jsonify({"error": "subject_ids must be a list of integers"}), 400
+
+        if 'difficulty_level_ids' in data:
+            if isinstance(data['difficulty_level_ids'], list):
+                user.difficulty_level_ids = ','.join(map(str, data['difficulty_level_ids']))
+                updated = True
+            else:
+                return jsonify({"error": "difficulty_level_ids must be a list of integers"}), 400
+
+    if updated:
+        try:
+            db.session.commit()
+            return jsonify({"message": "User updated successfully"}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": f"Update failed: {str(e)}"}), 500
+    else:
+        return jsonify({"message": "No changes made"}), 200
 
 
 # Registration Endpoint
@@ -146,7 +231,6 @@ def login():
         return jsonify({"message": "Verify your email."}), 401
 
 
-
 @auth.route('/confirm/<auth_key>', methods=['GET'])
 def check_auth_key(auth_key):
     new_user = None
@@ -180,8 +264,7 @@ def check_auth_key(auth_key):
     return jsonify({"message": f"{temp_user.role.capitalize()} registered successfully."}), 201
 
 
-
-#TEST REGISTER
+# TEST REGISTER
 
 @auth.route('/test/register', methods=['POST'])
 @swag_from('../swagger_templates/register.yml')
