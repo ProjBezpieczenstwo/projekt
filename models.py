@@ -54,7 +54,7 @@ class BaseUser(db.Model):
             "email": self.email,
             "name": self.name,
             "role": self.role,
-            "created_at": self.created_at
+            "created_at": self.created_at.strftime("%d.%m.%Y %H:%M")
         }
 
 
@@ -187,7 +187,7 @@ class Review(db.Model):
             'student_id': Student.query.get(self.student_id).name,
             'rating': self.rating,
             'comment': self.comment,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': self.created_at.strftime("%d.%m.%Y %H:%M") if self.created_at else None
         }
 
 
@@ -245,7 +245,7 @@ class TempUser(db.Model):
                 "subject_ids": self.subject_ids,
                 "difficulty_level_ids": self.difficulty_level_ids,
                 "hourly_rate": self.hourly_rate,
-                "expired_at": self.expired_at.isoformat() if self.expired_at else None,
+                "expired_at": self.expired_at.strftime("%d.%m.%Y %H:%M") if self.expired_at else None,
                 "auth_key": self.auth_key
             }
         else:
@@ -254,7 +254,7 @@ class TempUser(db.Model):
                 "email": self.email,
                 "name": self.name,
                 "role": self.role,
-                "expired_at": self.expired_at.isoformat() if self.expired_at else None,
+                "expired_at": self.expired_at.strftime("%d.%m.%Y %H:%M") if self.expired_at else None,
                 "auth_key": self.auth_key
             }
         return res
@@ -279,8 +279,8 @@ class AccessCode(db.Model):
         return {
             'id': self.id,
             'code': self.code,
-            'created_at': self.created_at.isoformat(),
-            'expires_at': self.expires_at.isoformat(),
+            'created_at': self.created_at.strftime("%d.%m.%Y %H:%M"),
+            'expires_at': self.expires_at.strftime("%d.%m.%Y %H:%M"),
             'created_by': self.created_by,
             'email_to': self.email_to
         }
