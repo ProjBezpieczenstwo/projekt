@@ -16,16 +16,10 @@ def get_access_codes():
     access_codes_data = []
 
     for code in codes:
-        admin_user = BaseUser.query.get(code.created_by)
+        code_dict = code.to_dict()
 
-        code_dict = {
-            'id': code.id,
-            'code': code.code,
-            'created_at': code.created_at,
-            'expires_at': code.expires_at,
-            'created_by': admin_user.email if admin_user else 'Unknown',
-            'email_to': code.email_to
-        }
+        admin_user = BaseUser.query.get(code.created_by)
+        code_dict['created_by'] = admin_user.email if admin_user else 'Unknown'
 
         access_codes_data.append(code_dict)
 
