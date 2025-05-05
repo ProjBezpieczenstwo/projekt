@@ -90,11 +90,12 @@ def get_all_users():
 @admin.route('/users/<int:user_id>', methods=['DELETE'])
 @jwt_required(role='admin')
 def delete_user(user_id):
-    user = BaseUser.query.get(user_id)
-    current_app.logger.error(f"BaseUser: {user}")
-    if not user:
+    data = request.get_json()
+    user_type = data.get('user_type')
+    if user_type == "BaseUser":
+        user = BaseUser.query.get(user_id)
+    else:
         user = TempUser.query.get(user_id)
-        current_app.logger.error(f"TempUser: {user}")
     if not user or user.role == 'admin':
         return jsonify({'message': 'User not found or cannot delete admin user'}), 404
     db.session.delete(user)
