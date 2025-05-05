@@ -21,8 +21,8 @@ def get_access_codes():
         code_dict = {
             'id': code.id,
             'code': code.code,
-            'created_at': code.created_at.isoformat(),
-            'expires_at': code.expires_at.isoformat(),
+            'created_at': code.created_at,
+            'expires_at': code.expires_at,
             'created_by': admin_user.email if admin_user else 'Unknown',
             'email_to': code.email_to
         }
