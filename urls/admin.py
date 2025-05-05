@@ -91,7 +91,8 @@ def get_all_users():
 @jwt_required(role='admin')
 def delete_user(user_id):
     data = request.get_json()
-    user_type = data.get('user_type')
+    current_app.logger.error(data)
+    user_type = data.get("user_type")
     if user_type == "BaseUser":
         user = BaseUser.query.get(user_id)
     else:
