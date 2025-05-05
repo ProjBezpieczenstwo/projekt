@@ -285,10 +285,10 @@ def test_register():
 def credentials(user):
     if user.role == 'student':
         student = Student.query.filter_by(id=user.id).first()
-        return jsonify(user=student.to_dict()), 200
+        return jsonify(student.to_dict()), 200
     else:
         teacher = Teacher.query.filter_by(id=user.id).first()
-        return jsonify(user=teacher.to_dict()), 200
+        return jsonify(teacher.to_dict()), 200
 
 
 def updater(user, data):
