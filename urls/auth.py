@@ -29,11 +29,13 @@ def update_admin(user_id):
     user = BaseUser.query.filter_by(id=user_id).first()
     return update(user)
 
+
 @auth.route('/user/<int:user_id>', methods=['GET'])
 @jwt_required(role='admin')
 def get_user(user_id):
     user = BaseUser.query.filter_by(id=user_id).first()
     return user_credentials(user)
+
 
 @auth.route('/user', methods=['GET'])
 @jwt_required()

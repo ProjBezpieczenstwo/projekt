@@ -308,8 +308,9 @@ def get_lesson_by_id(teacher_id):
 @api.route('/lesson/<int:lesson_id>', methods=['PUT'])
 @jwt_required()
 def change_lesson_status(lesson_id):
+    data = request.get_json()
+    comment = data.get('comment')
     lesson = Lesson.query.get(lesson_id)
-    comment = request.args.get('comment')
     if not lesson:
         return jsonify({'message': 'No lesson found'}), 400
     if lesson.date + timedelta(hours=1) < datetime.now():
