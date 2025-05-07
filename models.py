@@ -109,6 +109,7 @@ class Lesson(db.Model):
     is_reported = db.Column(db.Boolean, nullable=False, default=False)
     price = db.Column(db.Float, nullable=False)
     cancellation_comment = db.Column(db.String(255), nullable=True)
+    cancelled_by = db.Column(db.String(255),nullable=True)
 
     def to_dict(self):
         data = {
@@ -127,6 +128,7 @@ class Lesson(db.Model):
             data['report'] = LessonReport.query.filter_by(lesson_id=self.id).first().to_dict()
         if self.cancellation_comment:
             data['cancellation_comment'] = self.cancellation_comment
+            data['cancelled_by'] = self.cancelled_by
         return data
 
 

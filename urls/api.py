@@ -307,7 +307,8 @@ def get_lesson_by_id(teacher_id):
 
 @api.route('/lesson/<int:lesson_id>', methods=['PUT'])
 @jwt_required()
-def change_lesson_status(lesson_id):
+@jwt_get_user()
+def change_lesson_status(user,lesson_id):
     data = request.get_json()
     comment = data.get('comment')
     lesson = Lesson.query.get(lesson_id)
@@ -317,6 +318,7 @@ def change_lesson_status(lesson_id):
         return jsonify({'message':'You can not update lesson less than 1 hour before start'}),400
     lesson.status = 'cancelled'
     lesson.cancellation_comment = comment
+    lesson.cancelled_by = user.name
     db.session.add(lesson)
     db.session.commit()
     return jsonify({'message' : 'Lesson successfully canceled'}), 200

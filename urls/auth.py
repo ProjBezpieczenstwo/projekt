@@ -50,7 +50,10 @@ def update_admin(user_id):
 @jwt_get_user()
 def update(user):
     data = request.get_json()
-    return updater(user, data)
+    password = data['current_password']
+    if user.check_password(password):
+        return updater(user, data)
+    return jsonify({'error': 'Invalid password'})
 
 
 # Registration Endpoint
