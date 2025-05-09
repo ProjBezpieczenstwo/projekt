@@ -26,7 +26,7 @@ jobs:
       - name: Fetch & merge from fork
         run: |
           git fetch "${REPO_NAME}" main || { echo "Failed to fetch main branch"; exit 1; }
-          git merge --no-ff "${REPO_NAME}"/main -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
+          git merge --no-ff "${REPO_NAME}" -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
 
       - name: Push changes
         run: git push origin main
