@@ -11,3 +11,5 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_URI}/{DB_NAME}?sslmode=require"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SECRET_KEY = '6e48ff4302924803ba0df47c2e307c78'
+
+
