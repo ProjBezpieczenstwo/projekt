@@ -17,13 +17,23 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Add fork remote dynamically
+      - name: Download fork repo into folder
+        env:
+          PAYLOAD: ${{ toJson(github.event.client_payload) }}
         run: |
-          FORK_OWNER=$(jq -r .fork <<< '${{ toJson(github.event.client_payload) }}')
-          REPO_NAME=$(jq -r .repo <<< '${{ toJson(github.event.client_payload) }}')
-          git remote add "${REPO_NAME}" https://github.com/${FORK_OWNER}/${REPO_NAME}.git
-          git fetch "${REPO_NAME}" master || { echo "Failed to fetch main branch"; exit 1; }
-          git merge --no-ff --allow-unrelated-histories "refs/remotes/${REPO_NAME}/master" -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
+          FORK_OWNER=$(echo "$PAYLOAD" | jq -r .fork)
+          REPO_NAME=$(echo "$PAYLOAD" | jq -r .repo)
+          echo "Cloning ${FORK_OWNER}/${REPO_NAME} into ./${REPO_NAME}"
+          mkdir "${REPO_NAME}"
+          cd "${REPO_NAME}"
+          git init
+          git remote add origin "https://github.com/${FORK_OWNER}/${REPO_NAME}.git"
+          git fetch --depth=1 origin master
+          git archive origin/master | tar -x -C .
+          rm -rf .git
 
-      - name: Push changes
-        run: git push origin main
+      - name: Push changes to main
+        run: |
+          git add .
+          git commit -m "Added ${REPO_NAME} from fork"
+          git push origin main
