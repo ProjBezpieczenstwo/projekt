@@ -1,0 +1,46 @@
+tags:
+  - Calendars
+summary: Get calendar for a teacher
+description: Retrieve the availability of a specific teacher.
+operationId: getCalendar
+parameters:
+  - name: teacher_id
+    in: path
+    required: true
+    type: integer
+    example: 3
+    description: ID of the teacher whose calendar is being retrieved.
+responses:
+  200:
+    description: Successfully retrieved calendar.
+    schema:
+      type: object
+      properties:
+        available_from:
+          type: string
+          example: "09:00"
+          description: Starting time of availability (format HH:mm).
+        available_until:
+          type: string
+          example: "17:00"
+          description: Ending time of availability (format HH:mm).
+        working_days:
+          type: array
+          items:
+            type: integer
+            example: [ 1, 2, 3, 4, 5 ]
+            description: Days of the week the teacher is available (1=Monday to 7=Sunday).
+  404:
+    description: Calendar not found.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Calendar not found"
+  401:
+    description: Unauthorized access.
+  500:
+    description: Internal server error.
+security:
+  - jwt: []
