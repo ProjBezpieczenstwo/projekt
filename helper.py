@@ -2,12 +2,13 @@ from functools import wraps
 
 from flask import jsonify
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+
 from models import Teacher, Student, Review, Lesson, LessonReport, Calendar, Subject, \
     DifficultyLevel, BaseUser
 
 
 def get_object_or_404(model, object_id, type=int):
-    check_data(model,object_id)
+    check_data(model, object_id)
     id = parse_data(object_id, type)
     obj = model.query.filter_by(id=id).first()
     if obj is None:
@@ -49,10 +50,13 @@ def jwt_required(role=None):
 
     return decorator
 
+
 def jwt_get_user():
     def decorator(fn):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             return fn(get_user_by_jwt(), *args, **kwargs)
+
         return wrapper
+
     return decorator
