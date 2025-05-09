@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Access Codes{% endblock %}
+{% block content %}
+<h2>Access Codes</h2>
+
+<!-- Formularz generowania nowego access code -->
+<form method="post" action="{{ url_for('admin.create_access_code_page') }}">
+    <label for="number">Number of codes:</label>
+    <input type="number" name="number" id="number" value="1" min="1">
+    <label for="email">Optional Email to notify:</label>
+    <input type="email" name="email" id="email">
+    <button type="submit">Generate Access Code</button>
+</form>
+
+<hr>
+
+<table border="1">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Code</th>
+            <th>Created At</th>
+            <th>Expires At</th>
+            <th>Created By</th>
+            <th>Email</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for code in access_codes %}
+        <tr>
+            <td>{{ code.id }}</td>
+            <td>{{ code.code }}</td>
+            <td>{{ code.created_at }}</td>
+            <td>{{ code.expires_at }}</td>
+            <td>{{ code.created_by }}</td>
+            <td>{{ code.email_to }}</td>
+            <td>
+                <form method="post" action="{{ url_for('admin.delete_access_code_page', code_id=code.id) }}" style="display:inline;">
+                    <button class="btn btn-secondary mt-2" type="submit">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

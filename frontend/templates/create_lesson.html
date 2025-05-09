@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Book a Lesson{% endblock %}
+{% block content %}
+<h2>Book a Lesson</h2>
+<form method="post">
+    <label>Select Teacher:</label><br>
+    <input type="text" name="teacher_id" required><br>
+    <label>Subject:</label><br>
+    <select name="subject_id">
+        {% for subject in subjects %}
+            <option value="{{ subject.id }}">{{ subject.name }}</option>
+        {% endfor %}
+    </select>
+    <label>Difficulty Level:</label><br>
+    <select name="difficulty_id">
+        {% for difficulty in difficulties %}
+            <option value="{{ difficulty.id }}">{{ difficulty.name }}</option>
+        {% endfor %}
+    </select>
+    <label>Date (dd/mm/YYYY HH:MM):</label><br>
+    <input type="text" name="date" placeholder="e.g., 25/12/2025 14:00" required><br>
+    <button type="submit">Book Lesson</button>
+</form>
+{% endblock %}
