@@ -21,6 +21,8 @@ jobs:
         run: |
           FORK_OWNER=$(jq -r .fork <<< '${{ toJson(github.event.client_payload) }}')
           REPO_NAME=$(jq -r .repo <<< '${{ toJson(github.event.client_payload) }}')
+          echo "FORK_OWNER=$FORK_OWNER"
+          echo "REPO_NAME=$REPO_NAME"
           git remote add "${REPO_NAME}" https://github.com/${FORK_OWNER}/${REPO_NAME}.git
 
       - name: Fetch & merge from fork
