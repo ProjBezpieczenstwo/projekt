@@ -50,6 +50,7 @@ def update_admin(user_id):
 @jwt_get_user()
 def update(user):
     data = request.get_json()
+    current_app.logger.error(data)
     password = data['current_password']
     if user.check_password(password):
         return updater(user, data)
