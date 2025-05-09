@@ -54,7 +54,7 @@ def update(user):
     password = data['current_password']
     if user.check_password(password):
         return updater(user, data)
-    return jsonify({'error': 'Invalid password'})
+    return jsonify({'error': 'Invalid password'}), 401
 
 
 # Registration Endpoint
