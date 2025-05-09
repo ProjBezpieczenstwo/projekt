@@ -109,7 +109,7 @@ class Lesson(db.Model):
     is_reported = db.Column(db.Boolean, nullable=False, default=False)
     price = db.Column(db.Float, nullable=False)
     cancellation_comment = db.Column(db.String(255), nullable=True)
-    cancelled_by = db.Column(db.String(255),nullable=True)
+    cancelled_by = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):
         data = {
