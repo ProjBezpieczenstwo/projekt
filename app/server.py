@@ -1,16 +1,18 @@
-from flask import Flask, render_template, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from models import db
-from urls.auth import auth
-from urls.api import api, update_lesson_status_helper, delete_expired_temp_users_helper
-from urls.admin import admin
-from config import Config
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from flasgger import Swagger
+from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flasgger import Swagger
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
-from apscheduler.schedulers.background import BackgroundScheduler
+
+from config import Config
+from models import db
+from urls.admin import admin
+from urls.api import api, update_lesson_status_helper, delete_expired_temp_users_helper
+from urls.auth import auth
 
 app = Flask(__name__)
 CORS(app)
@@ -39,7 +41,6 @@ try:
                 db.session.add(new_weekday)
             db.session.commit()
             print("Weekdays have been added to the database.")
-
 
         if DifficultyLevel.query.count() == 0:
             difficulty_levels = [
@@ -82,7 +83,6 @@ except Exception as e:
     print(f"Error: {e}")
     exit(1)
 
-
 jwt = JWTManager(app)
 
 swagger = Swagger(app, template={
@@ -93,10 +93,9 @@ swagger = Swagger(app, template={
     }
 })
 
-
 app.register_blueprint(auth, url_prefix="/auth")
 app.register_blueprint(api, url_prefix="/api")
-app.register_blueprint(admin,url_prefix="/admin")
+app.register_blueprint(admin, url_prefix="/admin")
 
 
 @app.errorhandler(404)
