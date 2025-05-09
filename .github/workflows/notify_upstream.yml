@@ -15,8 +15,4 @@ jobs:
           token: ${{ secrets.CR_PAT }}
           repository: ProjBezpieczenstwo/projekt
           event-type: fork-update
-          client-payload: >-
-            {
-              "fork": "${{ github.repository_owner }}",
-              "repo": "${{ github.event.repository.name }}"
-            }
+          client-payload: '{"fork":"${{ github.repository_owner }}","repo":"${{ github.event.repository.name }}"}'
