@@ -21,12 +21,12 @@ jobs:
         run: |
           FORK_OWNER=$(jq -r .fork <<< '${{ toJson(github.event.client_payload) }}')
           REPO_NAME=$(jq -r .repo <<< '${{ toJson(github.event.client_payload) }}')
-          git remote add "${FORK_OWNER}-${REPO_NAME}" https://github.com/${FORK_OWNER}/${REPO_NAME}.git
+          git remote add "${REPO_NAME}" https://github.com/${FORK_OWNER}/${REPO_NAME}.git
 
       - name: Fetch & merge from fork
         run: |
-          git fetch "${FORK_OWNER}-${REPO_NAME}" main || { echo "Failed to fetch main branch"; exit 1; }
-          git merge --no-ff "${FORK_OWNER}-${REPO_NAME}"/main -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
+          git fetch "${REPO_NAME}" main || { echo "Failed to fetch main branch"; exit 1; }
+          git merge --no-ff "${REPO_NAME}"/main -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
 
       - name: Push changes
         run: git push origin main
