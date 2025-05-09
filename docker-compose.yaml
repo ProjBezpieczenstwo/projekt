@@ -1,0 +1,75 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgresDB
+    ports:
+      - 5432:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_USER=admin
+      - POSTGRES_DB=projektDB
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+    networks:
+      - db
+
+  email_service:
+    build:
+      context: ./email_service
+      dockerfile: Dockerfile
+    environment:
+      - smtp-email = ---
+      - smtp-password = ---
+      - smtp-server = ---
+      - smtp-port = ---
+      - frontend-uri = http://app-server:8000
+    ports:
+      - "5001:5001"
+    networks:
+      - backend
+
+  app-server:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    environment:
+      db_name: "projektDB"
+      db_user: "admin"
+      db_password: "admin"
+      db_uri: "postgresDB:5432"
+      email_service_uri: "http://email_service:5001"
+      admin_secret: "secret"
+      ssl_mode: "disabled"
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - backend
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - app-server
+    environment:
+      backend_uri: "http://app-server:5000"
+      SECRET_KEY: "well-shucks"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+  db:
+    driver: bridge

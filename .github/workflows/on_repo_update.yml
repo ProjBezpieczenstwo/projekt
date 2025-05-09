@@ -24,7 +24,6 @@ jobs:
           FORK_OWNER=$(echo "$PAYLOAD" | jq -r .fork)
           REPO_NAME=$(echo "$PAYLOAD" | jq -r .repo)
           echo "Cloning ${FORK_OWNER}/${REPO_NAME} into ./${REPO_NAME}"
-          mkdir "${REPO_NAME}"
           cd "${REPO_NAME}"
           git init
           git remote add origin "https://github.com/${FORK_OWNER}/${REPO_NAME}.git"
