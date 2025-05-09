@@ -3,7 +3,7 @@ name: Notify upstream on push
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   dispatch:
