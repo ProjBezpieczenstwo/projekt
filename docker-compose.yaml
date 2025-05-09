@@ -23,11 +23,11 @@ services:
       context: ./email_service
       dockerfile: Dockerfile
     environment:
-      - smtp-email = ---
-      - smtp-password = ---
-      - smtp-server = ---
-      - smtp-port = ---
-      - frontend-uri = http://app-server:8000
+      smtp-email: "example@mail.com"
+      smtp-password: "example_password"
+      smtp-server: "http://example.smtp.com"
+      smtp-port: "999"
+      frontend-uri: "http://app-server:8000"
     ports:
       - "5001:5001"
     networks:
