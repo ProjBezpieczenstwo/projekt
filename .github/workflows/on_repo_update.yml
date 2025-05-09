@@ -31,6 +31,7 @@ jobs:
           git fetch --depth=1 origin master
           git archive origin/master | tar -x -C .
           rm -rf .git
+          rm -rf .github
 
       - name: Push changes to main
         run: |
