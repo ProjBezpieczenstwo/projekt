@@ -23,7 +23,7 @@ jobs:
           REPO_NAME=$(jq -r .repo <<< '${{ toJson(github.event.client_payload) }}')
           git remote add "${REPO_NAME}" https://github.com/${FORK_OWNER}/${REPO_NAME}.git
           git fetch "${REPO_NAME}" master || { echo "Failed to fetch main branch"; exit 1; }
-          git merge --no-ff "refs/remotes/${REPO_NAME}/master" -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
+          git merge --no-ff --allow-unrelated-histories "refs/remotes/${REPO_NAME}/master" -m "Auto-merge from ${FORK_OWNER}/${REPO_NAME}"
 
       - name: Push changes
         run: git push origin main
