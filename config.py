@@ -13,3 +13,5 @@ class Config:
     SECRET_KEY = '6e48ff4302924803ba0df47c2e307c78'
 
 
+
+
