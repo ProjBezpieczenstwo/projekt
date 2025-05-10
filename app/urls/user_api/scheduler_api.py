@@ -4,7 +4,7 @@ import requests
 from flask import jsonify
 
 from models import Lesson, Calendar, db, WeekDay, TempUser
-from ..blueprints import api
+from urls.blueprints import api
 
 
 @api.route('/update-lesson-status', methods=['POST'])

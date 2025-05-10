@@ -1,6 +1,6 @@
 from services.user_services.data_service import DataService
 
-from ..blueprints import api
+from urls.blueprints import api
 
 
 @api.route('/subjects', methods=['GET'])

@@ -1,8 +1,8 @@
 from flask import request
 
 from services.user_services.lesson_service import LessonService
-from ..blueprints import api
-from ..decorators import jwt_required, jwt_get_user
+from urls.blueprints import api
+from urls.decorators import jwt_required, jwt_get_user
 
 
 @api.route('/lesson', methods=['POST'])
