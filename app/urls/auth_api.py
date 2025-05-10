@@ -2,7 +2,7 @@ from flask import request
 
 from services.auth_service import AuthService
 from urls.decorators import jwt_required, jwt_get_user
-from blueprints import auth
+from urls.blueprints import auth
 
 
 @auth.route('/user/<int:user_id>', methods=['GET'])
