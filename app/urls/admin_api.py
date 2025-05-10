@@ -2,7 +2,7 @@ from flask import request
 
 from services.admin_service import AdminService
 from urls.decorators import jwt_required, jwt_get_user
-from ..blueprints import admin
+from blueprints import admin
 
 
 @admin.route('/access_codes', methods=['GET'])
