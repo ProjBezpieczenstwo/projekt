@@ -5,7 +5,7 @@ import requests
 from flask import jsonify, current_app
 
 from models import db, Student, Teacher, Subject, DifficultyLevel, TempUser, Admin, AccessCode, BaseUser
-from ..utils.validators import is_valid_email
+from utils.validators import is_valid_email
 
 
 class AuthService:
