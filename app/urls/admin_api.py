@@ -38,7 +38,7 @@ def delete_user(user_id):
     return AdminService.delete_user_by_id(user_id, user_type)
 
 
-@admin.route('/delete_temp_user/<int:user_id>', methods=['DELETE'])
+@admin.route('/delete_temp_user/<int:user_id>', methods=['GET'])
 @jwt_required(role='admin')
 def delete_temp(user_id):
     return AdminService.delete_temp_user(user_id)
