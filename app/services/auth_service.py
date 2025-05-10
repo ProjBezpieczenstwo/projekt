@@ -87,7 +87,7 @@ class AuthService:
 
             if not new_user:
                 return jsonify({"message": "Error occurred while creating new user."}), 500
-            if role != 'admin' or is_test is not False:
+            if role != 'admin' or is_test is False:
                 email_service_url = current_app.config.get("EMAIL_SERVICE_URL",
                                                            "http://email_service:5001") + "/send-email"
                 email_payload = {"email_receiver": email, "auth_key": auth_key}
