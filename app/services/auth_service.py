@@ -96,12 +96,12 @@ class AuthService:
                 response = requests.post(email_service_url, json=email_payload)
                 if response.status_code != 200:
                     return jsonify({response.json()}), 500
-            else:
-                check_auth_key(auth_key)
             try:
                 new_user.set_password(password)
                 db.session.add(new_user)
                 db.session.commit()
+                if is_test is True:
+                    check_auth_key(auth_key)
             except Exception as e:
                 return jsonify({"XD": f"{e}"}), 500
             if role == 'admin':
