@@ -102,6 +102,7 @@ class AuthService:
                 db.session.commit()
                 if is_test is True:
                     check_auth_key(auth_key)
+                    return jsonify({"message": "Test account created successfully"}), 200
             except Exception as e:
                 return jsonify({"XD": f"{e}"}), 500
             if role == 'admin':
