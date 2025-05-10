@@ -10,7 +10,14 @@ from services.exceptions.ErrorHandlers import register_error_handlers
 from models import db
 from urls.blueprints import api, auth, admin
 from urls.user_api.scheduler_api import update_lesson_status_helper, delete_expired_temp_users_helper
-
+import urls.user_api.calendar_api
+import urls.user_api.data_api
+import urls.user_api.lesson_api
+import urls.user_api.report_api
+import urls.user_api.review_api
+import urls.user_api.teacher_api
+import urls.admin_api
+import urls.auth_api
 app = Flask(__name__)
 register_error_handlers(app)
 CORS(app)
