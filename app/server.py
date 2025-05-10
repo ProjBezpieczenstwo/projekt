@@ -1,20 +1,18 @@
-from datetime import datetime
-
 from apscheduler.schedulers.background import BackgroundScheduler
 from flasgger import Swagger
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import OperationalError
 
 from config import Config
+from services.exceptions.ErrorHandlers import register_error_handlers
 from models import db
-from urls.admin import admin
-from urls.api import api, update_lesson_status_helper, delete_expired_temp_users_helper
-from urls.auth import auth
+from urls.blueprints import api, auth, admin
+from urls.user_api.scheduler_api import update_lesson_status_helper, delete_expired_temp_users_helper
 
 app = Flask(__name__)
+register_error_handlers(app)
 CORS(app)
 
 try:
