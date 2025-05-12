@@ -14,4 +14,4 @@ class Config:
     else:
         SQLALCHEMY_DATABASE_URI = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_URI}/{DB_NAME}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SECRET_KEY = '6e48ff4302924803ba0df47c2e307c78'
+    SECRET_KEY = os.environ.get("SECRET_KEY", "9f1c2e4b8d7a6e3f9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e")
