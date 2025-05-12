@@ -18,8 +18,7 @@ Autorzy: Jakub Kucharek, Igor Osiakowski, Mateusz Ługowski, Mikołaj Lewandowsk
 
 | Name               | Description                                             |
 |--------------------|---------------------------------------------------------|
-| DATABASE_URI       | URI do Azure Database for PostgreSQL:  
-  `postgres://<user>:<pass>@<server>.postgres.database.azure.com:5432/<db>` |
+| DATABASE_URI       | URI do Azure Database for PostgreSQL:  `postgres://<user>:<pass>@<server>.postgres.database.azure.com:5432/<db>` |
 | SECRET_KEY         | Sekret Flask (do sesji i CSRF)(sesje)                                    |
 | JWT_SECRET_KEY     | Sekret do generowania i weyfikacji tokenów JWT                       |
 | EMAIL_SERVICE_URI  | URL serwisu e-mail (np. `https://<email_app>.azurewebsites.net`) , albo `https://korepetycje-email.azurecontainerapps.io/send-email` itp.|
