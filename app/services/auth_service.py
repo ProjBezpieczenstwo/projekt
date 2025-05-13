@@ -12,18 +12,18 @@ class AuthService:
     @staticmethod
     def get_user(user_id):
         user = BaseUser.query.filter_by(id=user_id).first()
-        return credentials(user)
+        return AuthService.credentials(user)
 
     @staticmethod
     def update_admin(user_id, data):
         user = BaseUser.query.filter_by(id=user_id).first()
-        return updater(user, data)
+        return AuthService.updater(user, data)
 
     @staticmethod
     def updater_user(user, data):
         password = data['current_password']
         if user.check_password(password):
-            return self.updater(user, data)
+            return AuthService.updater(user, data)
         return jsonify({'error': 'Invalid password'}), 401  # ABORT
 
     @staticmethod
