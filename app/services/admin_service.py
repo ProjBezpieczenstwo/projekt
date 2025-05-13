@@ -28,7 +28,7 @@ class AdminService:
             abort(400, description='Invalid number of codes')
         code_list = [str(uuid.uuid4()) for _ in range(number)]
         access_codes = [
-            AccessCode(code=code, created_by=admin_user.id, email_to=email or None)
+            AccessCode(code=code, created_by=admin_user.id, email_to=email or 'Not provided')
             for code in code_list
         ]
 
