@@ -57,7 +57,9 @@ def calendar_create(user):
               available_from: { type: integer }
               available_until: { type: integer }
           example:
-            - day: 2; available_from: 16; available_until: 18
+            - day: 2;
+              available_from: 16;
+              available_until: 18
     responses:
       200:
         description: GET successful

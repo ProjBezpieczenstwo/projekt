@@ -36,7 +36,10 @@ def get_teacher_details(teacher_id):
             hourly_rate: 45
             bio: "Physics enthusiast"
             available_hours:
-              - id: 5; weekday_id: 2; available_from: 16; available_until: 18
+              - id: 5;
+                weekday_id: 2;
+                available_from: 16;
+                available_until: 18
       404:
         description: Teacher not found
     """
