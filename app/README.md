@@ -32,4 +32,4 @@ Autorzy: Jakub Kucharek, Igor Osiakowski, Mateusz Ługowski, Mikołaj Lewandowsk
 
 ### 4. Dostęp
 - https://\<korepetycje-backend\>.azurecontainerapps.io (szablon)
-- (``` https://korepetycje-backend.<region>.azurecontainerapps.io```) (przypadek wdrożenia)
+- (``` https://korepetycje-backend.<region>.azurecontainerapps.io```) (przypadek wdrożenia, region to np: polandcentral-01)

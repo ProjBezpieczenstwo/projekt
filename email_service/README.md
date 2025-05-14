@@ -30,7 +30,7 @@ Analogicznie jak backend
 
 ### 4. Dostęp
 
-- (```https://korepetycje-email.<region>.azurecontainerapps.io```) (przypadek wdrożenia)
+- (```https://korepetycje-email.<region>.azurecontainerapps.io```) (przypadek wdrożenia, region to np: polandcentral-01)
 
 
 ## Azure Database dla PostgreSQL
