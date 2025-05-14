@@ -21,27 +21,30 @@ Aby uruchomić aplikację lokalnie w kontenerach Docker:
    ```
 
 2. Skonfiguruj połączenie SMTP
-Otwórz *docker-compose.yml* i w sekcji *email_service.environment* ustaw:
-EMAIL_SENDER: your-email@example.com
-EMAIL_PASSWORD: your-email-password
-SMTP_SERVER: smtp.example.com
-SMTP_PORT: "465"
+Otwórz *docker-compose.yaml* i w sekcji *email_service* w *environment* ustaw:
+- smtp-email: your-email@example.com
+- smtp-password: your-email-password
+- smtp-server: smtp.example.com
+- smtp-port: "465"
 
-- Jeśli Twój serwer SMTP jest niedostępny, możesz pominąć krok i użyć testowego endpointu POST /test/register, który omija wysyłkę maili.
-3. (Opcjonalnie) Omijanie SMTP
-W *app/urls/auth.py* ustaw flagę:
-```bash BYPASS_SMTP = True```
-lub rejestruj się przez:
-```bash POST /test/register```
+> Jeśli Twój serwer SMTP jest niedostępny, możesz pominąć ten krok i skorzystać z rozwiązania z punktu 3.
+3. (Opcjonalnie) Omijanie SMTP:
 
-4. Urucom całość
+(Plik auth_api.py rejestruje ścieżkę testową jako /auth/test/register)
+Omijamy SMPT rejestrując się pod:
+```bash 
+http://localhost:8000/auth/test/register
+```
+
+4. Uruchom całość
 ```bash 
 docker-compose up --build
 ```
 4. Dostępy:
 - Frontend: http://localhost:8000
 - Backend API: http://localhost:5000
-
+- Flasgger: http://localhost:5000/apidocs
+- (opcjonalna rejestracja jako admin (sekret to secret): http://localhost:8000/admin/register)
 
 
 5. zmienne środowiske
