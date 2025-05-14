@@ -92,11 +92,6 @@ def weekdays_all():
     return jsonify(weekdays=weekdays_list), 200
 
 
-def clear_calendar(teacher_id):
-    db.session.query(Calendar).filter(Calendar.teacher_id == teacher_id).delete()
-    db.session.commit()
-
-
 def update_lesson_status_helper():
     response = requests.post("http://localhost:5000/api/update-lesson-status")
     return response.json(), response.status_code

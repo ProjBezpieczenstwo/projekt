@@ -51,7 +51,7 @@ class CalendarService:
             elif available_from < 16 or available_until > 22:
                 return abort(400, description=f'Invalid time format for day {day}.')
 
-        clear_calendar(teacher_id)
+        CalendarService.clear_calendar(teacher_id)
 
         for entry in request_model:
             day = entry.get('day')
@@ -87,3 +87,7 @@ class CalendarService:
             as_attachment=True,
             download_name=f"lesson_plan_{user.id}.pdf"
         )
+    @staticmethod
+    def clear_calendar(teacher_id):
+        db.session.query(Calendar).filter(Calendar.teacher_id == teacher_id).delete()
+        db.session.commit()
